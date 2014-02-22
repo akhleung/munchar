@@ -94,10 +94,14 @@ namespace Munchar {
 		constexpr auto x = 6 + 6;
 	}
 
-	// expr() {
-	// 	// term plus or minus expression
-	// 	lhs = term();
-	// 	lexer { exactly<"+">() | exactly<"-">() }(position, eoi)
+	expr() {
+		// term plus or minus expression
+		terms = { term() };
+		while (lex("+" | "-")) {
+			term << term();
+		}
+		return terms;
+	}
 
 
 }
