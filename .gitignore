@@ -11,3 +11,6 @@
 *.lai
 *.la
 *.a
+
+# g++'s compiled headers
+*.gch
