@@ -5,103 +5,87 @@
 
 namespace Munchar {
 
-	struct Epsilon {
-		static const char* munch(const char* src, const char* end)
-		{ return src; }
-	};
+  struct Success {
+    const char* operator()(const char* b, const char* e) { return b; }
+  };
 
-	template <typename L, typename R>
-	struct Sequence {
-		static const char* munch(const char* src, const char* end)
-		{	return src = L::munch(src, end) ? R::munch(src, end) : src; }
-	};
+  struct Failure {
+    const char* operator()(const char* b, const char* e) { return 0; }
+  };
 
-	template <typename L, typename R>
-	constexpr Sequence<L, R> operator&(const L& l, const R& r)
-	{ return Sequence<L, R> { }; }
+  template <typename L, typename R>
+  class Sequence {
+    L l_;
+    R r_;
+  public:
+    constexpr Sequence(const L& l, const R& r) : l_(l), r_(r) { }
+    const char* operator()(const char* b, const char* e) const {
+      return b = l_(b) ? r_(b) : b;
+    }
+  };
 
-	template <typename L, typename R>
-	struct Alternatation {
-		static const char* munch(const char* src, const char* end)
-		{ return src = L::munch(src, end) ? src : R::munch(src, end); }
-	};
+  template <typename L, typename R>
+  constexpr Sequence<L, R> operator&(const L& l, const R& r) {
+    return Sequence<L, R>(l, r);
+  }
 
-	template <typename L, typename R>
-	constexpr Alternatation<L, R> operator|(const L& l, const R& r)
-	{ return Alternatation<L, R> { }; }
+  template <typename L, typename R>
+  class Alternation {
+    L l_;
+    R r_;
+  public:
+    constexpr Alternation(const L& l, const R& r) : l_(l), r_(r) { }
+    const char* operator()(const char* b, const char* e) const {
+      return b = l_(b) ? b : r_(b);
+    }
+  };
 
-	template <typename L>
-	struct Zero_Plus {
-		static const char* munch(const char* src, const char* end)
-		{
-			for (const char* pos = src; pos = L::munch(src, end); src = pos) ;
-			return src;
-		}
-	};
+  template <typename L, typename R>
+  constexpr Alternation<L, R> operator|(const L& l, const R& r) {
+    return Alternation<L, R>(l, r);
+  }
 
-	template <typename L>
-	constexpr Zero_Plus<L> operator*(const L& l)
-	{ return Zero_Plus<L> { }; }
+  template <typename L>
+  class Zero_Or_More {
+    L l_;
+  public:
+    constexpr Zero_Or_More(const L& l) : l_(l) { }
+    const char* operator()(const char* b, const char* e) const {
+      for (const char* p = b; p = l_(b, e); b = p) ;
+      return b;
+    }
+  };
 
-	template <typename L>
-	constexpr Sequence<L, Zero_Plus<L>> operator+(const L& l)
-	{ return l & *l; }
+  template <typename L>
+  constexpr Zero_Or_More<L> operator*(const L& l) {
+    return Zero_Or_More<L>(l);
+  }
 
-	template <typename L>
-	constexpr Alternatation<L, Epsilon> operator~(const L& l)
-	{ return l | Epsilon { }; }
+  template <typename L>
+  constexpr Sequence<L, Zero_Or_More<L>> operator+(const L& l) {
+    return l & *l;
+  }
 
-	template <typename L, size_t N>
-	struct Exactly_N_Times
-	{
-		static const char* munch(const char* src, const char* end)
-		{
-			for (size_t i = 0; i < N; ++i)
-				if (!(src = L::munch(src, end))) return src;
-			return src;
-		}
-	};
+  template <typename L>
+  constexpr Alternation<L, Success> operator~(const L& l) {
+    return l | Success { };
+  }
 
-	template <size_t N, typename L>
-	constexpr Exactly_N_Times<L, N> exactly(const L& l)
-	{ return Exactly_N_Times<L, N> { }; }
+  class Char {
+    char c_;
+  public:
+    constexpr Char(const char c) : c_(c) { }
+    const char* operator()(const char* b, const char* e) const {
+      return b < e && *b == c_ ? b + 1 : nullptr;
+    }
+  };
 
-	template <typename L>
-	constexpr Exactly_N_Times<L, 1> exactly(const L& l)
-	{ return exactly<1>(l); }
-
-	void bar() {
-		exactly<5>(Epsilon { });
-		exactly(Epsilon { });
-	}
-
-	template <const char* prefix>
-	struct Exactly_This {
-		static const char* munch(const char* src, const char* end)
-		{
-			const char* pos = prefix;
-			while (*pos && src < end && *src == *pos) ++src, ++pos;
-			return *pos ? src : nullptr;
-		}
-	};
-
-	template <const char* prefix>
-	constexpr Exactly_This<prefix> exactly()
-	{ return Exactly_This<prefix> { }; }
-
-	void f() {
-		constexpr auto x = 5 + 5;
-		constexpr auto x = 6 + 6;
-	}
-
-	expr() {
-		// term plus or minus expression
-		terms = { term() };
-		while (lex("+" | "-")) {
-			term << term();
-		}
-		return terms;
-	}
-
+  // class Chars {
+  //   const char* c_;
+  // public:
+  //   constexpr Chars(const char* c) : c_(c) { }
+  //   const char* operator()(const char* b, const char* e) const {
+  //     while (b < e 
+  //   }
 
 }
