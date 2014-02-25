@@ -102,7 +102,7 @@ namespace Munchar {
   public:
     constexpr Zero_Or_More(const L& l) : l_(l) { }
     const char* operator()(const char* b, const char* e) const {
-      for (const char* p = b; p = l_(b, e); b = p) ;
+      for (const char* p = b; (p = l_(b, e)); b = p) ;
       return b;
     }
   };
