@@ -1,6 +1,7 @@
 #define MUNCHAR
 
 #include <cstddef>
+#include <string>
 
 namespace Munchar {
 
@@ -14,7 +15,7 @@ namespace Munchar {
 
   struct Any {
     const char* operator()(const char* b, const char* e) {
-      return b < e ? b + 1 : nullptr;
+      return b < e ? ++b : nullptr;
     }
   };
 
@@ -23,7 +24,7 @@ namespace Munchar {
   public:
     constexpr Character(const char c) : c_(c) { }
     const char* operator()(const char* b, const char* e) const {
-      return b < e && *b == c_ ? b + 1 : nullptr;
+      return b < e && *b == c_ ? ++b : nullptr;
     }
   };
 
@@ -71,7 +72,7 @@ namespace Munchar {
   public:
     constexpr Sequence(const L& l, const R& r) : l_(l), r_(r) { }
     const char* operator()(const char* b, const char* e) const {
-      return b = l_(b) ? r_(b) : b;
+      return b = l_(b, e) ? r_(b, e) : b;
     }
   };
 
@@ -87,7 +88,7 @@ namespace Munchar {
   public:
     constexpr Alternation(const L& l, const R& r) : l_(l), r_(r) { }
     const char* operator()(const char* b, const char* e) const {
-      return b = l_(b) ? b : r_(b);
+      return b = l_(b, e) ? b : r_(b, e);
     }
   };
 
@@ -130,7 +131,7 @@ namespace Munchar {
     constexpr Exactly_N_Times(const L& l, const size_t n) : l_(l), n_(n) { }
     const char* operator()(const char* b, const char* e) const {
       size_t i;
-      for (i = 0; i < n_ && (b = l_(b)); ++i) ;
+      for (i = 0; i < n_ && (b = l_(b, e)); ++i) ;
       return i == n_ ? b : nullptr;
     }
   };
@@ -160,8 +161,8 @@ namespace Munchar {
 
   template <typename L>
   constexpr auto operator<=(const L&l, const size_t n)
-  -> decltype(l == n | *l) {
-    return l == n | *l;
+  -> decltype((l == n) | *l) {
+    return (l == n) | *l;
   }
 
   template <typename L>
@@ -170,13 +171,19 @@ namespace Munchar {
     return l == lo & l <= hi;
   }
 
+  template <size_t lo, size_t hi, typename L>
+  constexpr auto between(const L& l)
+  -> decltype((l == lo) & (l <= hi)) {
+    return (l == lo) & (l <= hi);
+  }
+
   template <typename L>
   class Negation {
     L l_;
   public:
-    constexpr Negation(L& l) : l_(l) { }
+    constexpr Negation(const L& l) : l_(l) { }
     const char* operator()(const char* b, const char* e) const {
-      return l_(b) ? nullptr : b;
+      return l_(b, e) ? nullptr : b;
     }
   };
 
@@ -185,15 +192,74 @@ namespace Munchar {
     return Negation<L> { l };
   }
 
-  template <typename L, typename R>
-  constexpr auto operator<<(const L& l, const R& r)
-  -> decltype(!l & r | Failure { }) {
-    return !l & r | Failure { };
+  template <typename L>
+  class Lookahead {
+    L l_;
+  public:
+    constexpr Lookahead(const L& l) : l_(l) { }
+    const char* operator()(const char* b, const char* e) const {
+      return l_(b, e) ? b : nullptr;
+    }
+  };
+
+  template <typename L>
+  constexpr Lookahead<L> operator&(const L& l) {
+    return Lookahead<L> { l };
   }
 
-  constexpr auto if_kwd   = "if"_lit;
-  constexpr auto else_kwd = "else"_lit;
-  constexpr auto sign_sym = '+'_lit | '-'_lit;
-  constexpr auto digits   = "0123456789"_cls;
+  template <typename I, typename O>
+  class Predicate {
+    O (*p_)(I);
+  public:
+    constexpr Predicate(O (* const p)(I)) : p_(p) { }
+    const char* operator()(const char* b, const char* e) const {
+      return (b < e) && p_(*b) ? ++b : nullptr;
+    }
+  };
 
+  template <typename I, typename O>
+  struct Predicate_Types {
+    template<O(*P)(I)>
+    struct Predicate {
+      const char* operator()(const char* b, const char* e) const {
+        return (b < e) && P(b) ? ++b : nullptr;
+      }
+    };
+  };
+
+  template <typename I, typename O>
+  constexpr Predicate<I, O> P(O (* const p)(I)) {
+    return Predicate<I, O> { p };
+  }
+
+  using ctype_predicate = int(*)(int);
+
+  template <ctype_predicate P>
+  struct ctype {
+    const char* operator()(const char* b, const char* e) const {
+      return (b < e) && P(*b) ? ++b : nullptr;
+    }
+  };
+
+  constexpr auto if_kwd      = "if"_lit;
+  constexpr auto else_kwd    = "else"_lit;
+  constexpr auto sign_sym    = '+'_lit | '-'_lit;
+  constexpr auto digit       = "0123456789"_cls;
+  constexpr auto hex_digit   = digit | "abcdefABCDEF"_cls;
+  constexpr auto hex_color   = '#'_lit & between<3,6>(hex_digit);
+  constexpr auto foo_not_bar = "foo"_lit & !"bar"_lit; // negative lookahead
+  constexpr auto foo_see_bar = "foo"_lit & &"bar"_lit; // positive lookahead
+
+  int is_1(int c) {
+    return c == '1';
+  }
+
+  bool is_2(const char c) {
+    return c == '2';
+  }
+
+  constexpr auto is2 = Predicate_Types<char, bool>::Predicate<is_2>();
+
+  // template <typename I, typename O>
+  // constexpr Predicate_Types<I, O>::Predicate
 }
