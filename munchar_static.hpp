@@ -1,21 +1,36 @@
 #define MUNCHAR
 
 #include <cstddef>
-#include <string>
-
-using namespace std;
 
 namespace Munchar {
 
-  struct Epsilon {
-    static const char* munch(const char* src, const char* end)
-    { return src; }
+  struct Success {
+    static const char* munch(const char* b, const char* e) {
+      return b;
+    }
   };
+
+  struct Failure {
+    static const char* munch(const char* b, const char* e) {
+      return nullptr;
+    }
+  };
+
+  struct Any {
+    static const char* munch(const char* b, const char* e) {
+      return b != e ? ++b : nullptr;
+    }
+  };
+
+  // template<template<is_static> class L, template<is_static> class R>
+  // constexpr Sequence<L<yes>, R<no>> operator&(const L<yes>& l, const R<no>& r)
+  // { ; }
 
   template <typename L, typename R>
   struct Sequence {
-    static const char* munch(const char* src, const char* end)
-    { return src = L::munch(src, end) ? R::munch(src, end) : src; }
+    static const char* munch(const char* b, const char* e) {
+      return b = L::munch(b, e) ? R::munch(b, e) : b;
+    }
   };
 
   template <typename L, typename R>
@@ -24,8 +39,8 @@ namespace Munchar {
 
   template <typename L, typename R>
   struct Alternatation {
-    static const char* munch(const char* src, const char* end)
-    { return src = L::munch(src, end) ? src : R::munch(src, end); }
+    static const char* munch(const char* b, const char* e)
+    { return b = L::munch(b, e) ? b : R::munch(b, e); }
   };
 
   template <typename L, typename R>
@@ -34,10 +49,10 @@ namespace Munchar {
 
   template <typename L>
   struct Zero_Plus {
-    static const char* munch(const char* src, const char* end)
+    static const char* munch(const char* b, const char* e)
     {
-      for (const char* pos = src; pos = L::munch(src, end); src = pos) ;
-      return src;
+      for (const char* pos = b; pos = L::munch(b, e); b = pos) ;
+      return b;
     }
   };
 
@@ -56,11 +71,11 @@ namespace Munchar {
   template <typename L, size_t N>
   struct Just_N_Times
   {
-    static const char* munch(const char* src, const char* end)
+    static const char* munch(const char* b, const char* e)
     {
       for (size_t i = 0; i < N; ++i)
-        if (!(src = L::munch(src, end))) return src;
-      return src;
+        if (!(b = L::munch(b, e))) return b;
+      return b;
     }
   };
 
@@ -74,11 +89,11 @@ namespace Munchar {
 
   template <const char* prefix>
   struct Just_This {
-    static const char* munch(const char* src, const char* end)
+    static const char* munch(const char* b, const char* e)
     {
       const char* pos = prefix;
-      while (*pos && src < end && *src == *pos) ++src, ++pos;
-      return *pos ? src : nullptr;
+      while (*pos && b < e && *b == *pos) ++b, ++pos;
+      return *pos ? b : nullptr;
     }
   };
 
