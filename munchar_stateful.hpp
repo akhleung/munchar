@@ -5,19 +5,22 @@
 namespace Munchar {
 
   struct Success {
-    const char* operator()(const char* b, const char* e) const {
+    template<typename I>
+    I operator()(I b, I e) const {
       return b;
     }
   };
 
   struct Failure {
-    const char* operator()(const char* b, const char* e) const {
+    template<typename I>
+    I operator()(I b, I e) const {
       return nullptr;
     }
   };
 
   struct Any {
-    const char* operator()(const char* b, const char* e) {
+    template<typename I>
+    I operator()(I b, I e) {
       return b != e ? ++b : nullptr;
     }
   };
@@ -26,7 +29,8 @@ namespace Munchar {
     char c_;
   public:
     constexpr Character(const char c) : c_(c) { }
-    const char* operator()(const char* b, const char* e) const {
+    template<typename I>
+    I operator()(I b, I e) const {
       return b != e && *b == c_ ? ++b : nullptr;
     }
   };
@@ -40,7 +44,8 @@ namespace Munchar {
     size_t n_;
   public:
     constexpr Characters(const char* c, size_t n) : c_(c), n_(n) { }
-    const char* operator()(const char* b, const char* e) const {
+    template<typename I>
+    I operator()(I b, I e) const {
       for (size_t i = 0; i < n_; ++i) {
         if (b == e || c_[i] != *b) return nullptr;
       }
@@ -57,7 +62,8 @@ namespace Munchar {
     size_t n_;
   public:
     constexpr Character_Class(const char* c, size_t n) : c_(c), n_(n) { }
-    const char* operator()(const char* b, const char* e) const {
+    template<typename I>
+    I operator()(I b, I e) const {
       if (!(b != e)) return nullptr;
       for (size_t i = 0; i < n_; ++i) if (c_[i] == *b) return b;
       return nullptr;
@@ -74,7 +80,8 @@ namespace Munchar {
     R r_;
   public:
     constexpr Sequence(const L& l, const R& r) : l_(l), r_(r) { }
-    const char* operator()(const char* b, const char* e) const {
+    template<typename I>
+    I operator()(I b, I e) const {
       return b = l_(b, e) ? r_(b, e) : b;
     }
   };
@@ -90,7 +97,8 @@ namespace Munchar {
     R r_;
   public:
     constexpr Alternation(const L& l, const R& r) : l_(l), r_(r) { }
-    const char* operator()(const char* b, const char* e) const {
+    template<typename I>
+    I operator()(I b, I e) const {
       return b = l_(b, e) ? b : r_(b, e);
     }
   };
@@ -105,7 +113,8 @@ namespace Munchar {
     L l_;
   public:
     constexpr Zero_Or_More(const L& l) : l_(l) { }
-    const char* operator()(const char* b, const char* e) const {
+    template<typename I>
+    I operator()(I b, I e) const {
       for (const char* p = b; (p = l_(b, e)); b = p) ;
       return b;
     }
@@ -132,7 +141,8 @@ namespace Munchar {
     size_t n_;
   public:
     constexpr Exactly_N_Times(const L& l, const size_t n) : l_(l), n_(n) { }
-    const char* operator()(const char* b, const char* e) const {
+    template<typename I>
+    I operator()(I b, I e) const {
       size_t i;
       for (i = 0; i < n_ && (b = l_(b, e)); ++i) ;
       return i == n_ ? b : nullptr;
@@ -169,9 +179,9 @@ namespace Munchar {
   }
 
   template<typename L>
-  constexpr auto range(const L& l, const size_t lo, const size_t hi)
-  -> decltype(l == lo & l <= hi) {
-    return l == lo & l <= hi;
+  constexpr auto between(const size_t lo, const size_t hi, const L& l)
+  -> decltype((l == lo) & (l <= hi)) {
+    return (l == lo) & (l <= hi);
   }
 
   template<size_t lo, size_t hi, typename L>
@@ -185,7 +195,8 @@ namespace Munchar {
     L l_;
   public:
     constexpr Negation(const L& l) : l_(l) { }
-    const char* operator()(const char* b, const char* e) const {
+    template<typename I>
+    I operator()(I b, I e) const {
       return l_(b, e) ? nullptr : b;
     }
   };
@@ -200,7 +211,8 @@ namespace Munchar {
     L l_;
   public:
     constexpr Lookahead(const L& l) : l_(l) { }
-    const char* operator()(const char* b, const char* e) const {
+    template<typename I>
+    I operator()(I b, I e) const {
       return l_(b, e) ? b : nullptr;
     }
   };
@@ -210,98 +222,45 @@ namespace Munchar {
     return Lookahead<L> { l };
   }
 
+  template<typename In, typename Out>
+  class Predicate {
+    Out (*p_)(In);
+  public:
+    constexpr Predicate(Out (* const p)(In)) : p_(p) { }
+    template<typename I>
+    I operator()(I b, I e) const {
+      return (b != e) && p_(*b) ? ++b : nullptr;
+    }
+  };
+
   // template<typename I, typename O>
-  // class Predicate {
-  //   O (*p_)(I);
-  // public:
-  //   constexpr Predicate(O (* const p)(I)) : p_(p) { }
-  //   const char* operator()(const char* b, const char* e) const {
-  //     return (b != e) && p_(*b) ? ++b : nullptr;
+  // struct Predicate_Types {
+  //   template<O(*P)(I)>
+  //   struct Predicate {
+  //     I operator()(I b, I e) const {
+  //       return (b != e) && P(b) ? ++b : nullptr;
+  //     }
+  //   };
+
+  //   template<O(*P)(I)>
+  //   Predicate<P> make_pred() {
+  //     return Predicate<P>{ };
   //   }
   // };
 
   template<typename I, typename O>
-  struct Predicate_Types {
-    template<O(*P)(I)>
-    struct Predicate {
-      const char* operator()(const char* b, const char* e) const {
-        return (b != e) && P(b) ? ++b : nullptr;
-      }
-    };
-
-    template<O(*P)(I)>
-    Predicate<P> make_pred() {
-      return Predicate<P>{ };
-    }
-  };
-
-  // template<typename I, typename O>
-  // constexpr Predicate<I, O> P(O (* const p)(I)) {
-  //   return Predicate<I, O> { p };
-  // }
-
-  using ctype_predicate = int(*)(int);
-
-  template<ctype_predicate P>
-  struct ctype {
-    const char* operator()(const char* b, const char* e) const {
-      return (b != e) && P(*b) ? ++b : nullptr;
-    }
-  };
-
-  constexpr auto if_kwd      = "if"_lit;
-  constexpr auto else_kwd    = "else"_lit;
-  constexpr auto sign_sym    = '+'_lit | '-'_lit;
-  constexpr auto digit       = "0123456789"_cls;
-  constexpr auto hex_digit   = digit | "abcdefABCDEF"_cls;
-  constexpr auto hex_color   = '#'_lit & between<3,6>(hex_digit);
-  constexpr auto foo_not_bar = "foo"_lit & !"bar"_lit; // negative lookahead
-  constexpr auto foo_see_bar = "foo"_lit & &"bar"_lit; // positive lookahead
-
-  int is_1(int c) {
-    return c == '1';
+  constexpr Predicate<I, O> P(O (* const p)(I)) {
+    return Predicate<I, O> { p };
   }
 
-  bool is_2(const char c) {
-    return c == '2';
-  }
+  // using ctype_predicate = int(*)(int);
 
-  constexpr auto is2 = Predicate_Types<char, bool>::Predicate<is_2>();
+  // template<ctype_predicate P>
+  // struct ctype {
+  //   I operator()(I b, I e) const {
+  //     return (b != e) && P(*b) ? ++b : nullptr;
+  //   }
+  // };
 
-  template<typename T>
-  struct T_Wrapper {
-    using type = T;
-    template<T V>
-    struct V_Wrapper {
-      enum { value = V };
-    };
-  };
 
-  template<typename T>
-  T_Wrapper<T> foo(T x) {
-    return T_Wrapper<T> { };
-  }
-
-  auto x = foo(5);
-
-  template<typename I, typename O>
-  Predicate_Types<I, O> bar(O(*f)(I)) {
-    return Predicate_Types<I, O> { };
-  }
-
-  auto y = bar(is_2).make_pred<is_2>(); // y has type Predicate_Types<char, bool>
-
-  #define P(pred) bar(pred).make_pred<pred>();
-
-  auto z = P(is_2);
-
-  // template<typename I, typename O, O(*f)(I)>
-  // constexpr Predicate_Types<I, O>::Predicate<f> P() {
-  //   return Predicate_Types<I, O>::Predicate<f>();
-  // }
-
-  // constexpr auto is2a = P<char, bool, is_2>();
-
-  // template<typename I, typename O>
-  // constexpr Predicate_Types<I, O>::Predicate
 }

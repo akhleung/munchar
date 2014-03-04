@@ -1,3 +1,4 @@
+#ifndef MUNCHAR
 #define MUNCHAR
 
 #include <cstddef>
@@ -103,3 +104,4 @@ namespace Munchar {
 
 }
 
+#endif
