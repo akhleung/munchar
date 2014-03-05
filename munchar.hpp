@@ -2,6 +2,7 @@
 #define MUNCHAR
 
 #include <cstddef>
+#include <cctype>
 
 namespace Munchar {
 
@@ -487,91 +488,128 @@ namespace Munchar {
     return (l == n) | *l;
   }
 
-  template<size_t lo, size_t hi, template<typename> class L>
+  template<size_t a, size_t b, template<typename> class L>
   constexpr auto between(const L<Stateless>& l)
-  -> decltype(just<lo>(l) & at_most<hi>(l)) {
-    return just<lo>(l) & at_most<hi>(l);
+  -> decltype(just<a>(l) & at_most<b>(l)) {
+    return just<a>(l) & at_most<b>(l);
   }
 
   template<template<typename> class L>
-  constexpr auto between(const size_t lo, const size_t hi, const L<Stateful>& l)
-  -> decltype((l == lo) & (l <= hi)) {
-    return (l == lo) & (l <= hi);
+  constexpr auto between(const size_t a, const size_t b, const L<Stateful>& l)
+  -> decltype((l == a) & (l <= b)) {
+    return (l == a) & (l <= b);
   }
 
+  template<typename T, typename L>
+  class Negation;
 
-  // template<typename L>
-  // class Negation {
-  //   L l_;
-  // public:
-  //   constexpr Negation(const L& l) : l_(l) { }
-  //   template<typename I>
-  //   I munch(I b, I e) const {
-  //     return l_(b, e) ? nullptr : b;
-  //   }
-  // };
+  template<template<typename> class L>
+  class Negation<Stateless, L<Stateless>> {
+  public:
+    template<typename I>
+    static I munch(I b, I e) {
+      return L<Stateless>::munch(b, e) ? nullptr : b;
+    }
+  };
 
-  // template<typename L>
-  // constexpr Negation<L> operator!(const L& l) {
-  //   return Negation<L> { l };
-  // }
+  template<template<typename> class L>
+  class Negation<Stateful, L<Stateful>> {
+    const L<Stateful> l_;
+  public:
+    constexpr Negation(const L<Stateful>& l) : l_(l) { }
+    template<typename I>
+    I munch(I b, I e) const {
+      return l_.munch(b, e) ? nullptr : b;
+    }
+  };
 
-  // template<typename L>
-  // class Lookahead {
-  //   L l_;
-  // public:
-  //   constexpr Lookahead(const L& l) : l_(l) { }
-  //   template<typename I>
-  //   I munch(I b, I e) const {
-  //     return l_(b, e) ? b : nullptr;
-  //   }
-  // };
+  template<template<typename> class L>
+  constexpr auto operator!(const L<Stateless>& l)
+  -> decltype(Negation<Stateless, L<Stateless>> { }) {
+    return Negation<Stateless, L<Stateless>> { };
+  }
 
-  // template<typename L>
-  // constexpr Lookahead<L> operator&(const L& l) {
-  //   return Lookahead<L> { l };
-  // }
+  constexpr auto y = !Success<Stateless>{};
 
-  // template<typename In, typename Out>
-  // class Predicate {
-  //   Out (*p_)(In);
-  // public:
-  //   constexpr Predicate(Out (* const p)(In)) : p_(p) { }
-  //   template<typename I>
-  //   I munch(I b, I e) const {
-  //     return (b != e) && p_(*b) ? ++b : nullptr;
-  //   }
-  // };
+  template<template<typename> class L>
+  constexpr Negation<Stateful, L<Stateful>> operator!(const L<Stateful>& l) {
+    return Negation<Stateful, L<Stateful>> { l };
+  }
 
-  // // template<typename I, typename O>
-  // // struct Predicate_typenames {
-  // //   template<O(*P)(I)>
-  // //   struct Predicate {
-  // //     I munch(I b, I e) const {
-  // //       return (b != e) && P(b) ? ++b : nullptr;
-  // //     }
-  // //   };
+  template<typename T, typename L>
+  class Lookahead;
 
-  // //   template<O(*P)(I)>
-  // //   Predicate<P> make_pred() {
-  // //     return Predicate<P>{ };
-  // //   }
-  // // };
+  template<template<typename> class L>
+  class Lookahead<Stateless, L<Stateless>> {
+  public:
+    template<typename I>
+    static I munch(I b, I e) {
+      return L<Stateless>::munch(b, e) ? b : nullptr;
+    }
+  };
 
-  // template<typename I, typename O>
-  // constexpr Predicate<I, O> P(O (* const p)(I)) {
-  //   return Predicate<I, O> { p };
-  // }
+  template<template<typename> class L>
+  class Lookahead<Stateful, L<Stateful>> {
+    const L<Stateful> l_;
+  public:
+    constexpr Lookahead(const L<Stateful>& l) : l_(l) { }
+    template<typename I>
+    I munch(I b, I e) const {
+      return l_.munch(b, e) ? b : nullptr;
+    }
+  };
 
-  // using ctype_predicate = int(*)(int);
+  template<template<typename> class L>
+  constexpr auto operator&(const L<Stateless>&l)
+  -> decltype(Lookahead<Stateless, L<Stateless>> { }) {
+    return Lookahead<Stateless, L<Stateless>> { };
+  }
 
-  // template<ctype_predicate P>
-  // struct ctype {
-  //   I munch(I b, I e) const {
-  //     return (b != e) && P(*b) ? ++b : nullptr;
-  //   }
-  // };
+  template<template<typename> class L>
+  constexpr Lookahead<Stateful, L<Stateful>> operator&(const L<Stateful>& l) {
+    return Lookahead<Stateful, L<Stateful>> { l };
+  }
 
+  template<typename T, typename In, typename Out>
+  class Predicate;
+
+  template<typename In, typename Out>
+  class Predicate<Stateless, In, Out> {
+    template<Out(*P)(In)>
+    struct Function {
+      template<typename I>
+      static I munch(I b, I e) {
+        return (b != e) && P(b) ? ++b : nullptr;
+      }
+    };
+  public:
+    template<Out(*P)(In)>
+    static constexpr Function<P> from() { return Function<P> { }; }
+  };
+
+  template<typename In, typename Out>
+  class Predicate<Stateful, In, Out> {
+    Out (*p_)(In);
+  public:
+    constexpr Predicate(Out (* const p)(In)) : p_(p) { }
+    template<typename I>
+    I munch(I b, I e) const {
+      return (b != e) && p_(*b) ? ++b : nullptr;
+    }
+  };
+
+  template<typename I, typename O, O(*p)(I)>
+  constexpr auto P()
+  -> decltype(Predicate<Stateless, I, O>::template from<p>()) {
+    return Predicate<Stateless, I, O>::template from<p>();
+  }
+
+  constexpr auto z = P<int, int, std::isalpha>();
+
+  template<typename I, typename O>
+  constexpr Predicate<Stateful, I, O> P(O (* const p)(I)) {
+    return Predicate<Stateful, I, O> { p };
+  }
 
 }
 
