@@ -396,66 +396,109 @@ namespace Munchar {
     return l | Success<Stateful> { };
   }
 
+  template<typename T, typename L, size_t N = 0>
+  class Exactly_N_Times;
 
-  // template<typename L>
-  // constexpr Alternation<L, Success> operator~(const L& l) {
-  //   return l | Success { };
-  // }
+  template<template<typename> class L, size_t n_>
+  class Exactly_N_Times<Stateless, L<Stateless>, n_> {
+  public:
+    template<typename I>
+    static I munch(I b, I e) {
+      size_t i;
+      for (i = 0; i < n_ && (b = L<Stateless>::munch(b, e)); ++i) ;
+      return i == n_ ? b : nullptr;
+    }
+  };
 
-  // template<typename L>
-  // class Exactly_N_Times {
-  //   L l_;
-  //   size_t n_;
-  // public:
-  //   constexpr Exactly_N_Times(const L& l, const size_t n) : l_(l), n_(n) { }
-  //   template<typename I>
-  //   I munch(I b, I e) const {
-  //     size_t i;
-  //     for (i = 0; i < n_ && (b = l_(b, e)); ++i) ;
-  //     return i == n_ ? b : nullptr;
-  //   }
-  // };
+  template<template<typename> class L>
+  class Exactly_N_Times<Stateful, L<Stateful>> {
+    const L<Stateful> l_;
+    size_t n_;
+  public:
+    constexpr Exactly_N_Times(const L<Stateful>& l, const size_t n)
+    : l_(l), n_(n) { }
+    template<typename I>
+    I munch(I b, I e) const {
+      size_t i;
+      for (i = 0; i < n_ && (b = l_.munch(b, e)); ++i) ;
+      return i == n_ ? b : nullptr;
+    }
+  };
 
-  // template<typename L>
-  // constexpr Exactly_N_Times<L> operator==(const L& l, const size_t n) {
-  //   return Exactly_N_Times<L> { l, n };
-  // }
+  template<size_t N, template<typename> class L>
+  constexpr auto just(const L<Stateless>&)
+  -> decltype(Exactly_N_Times<Stateless, L<Stateless>, N> { }) {
+    return Exactly_N_Times<Stateless, L<Stateless>, N> { }; 
+  }
 
-  // template<typename L>
-  // constexpr auto operator>(const L& l, const size_t n)
-  // -> decltype(l == n & +l) {
-  //   return l == n & +l;
-  // }
+  template<template<typename> class L>
+  constexpr auto operator==(const L<Stateful>& l, const size_t n)
+  -> decltype(Exactly_N_Times<Stateful, L<Stateful>> { l, n }) {
+    return Exactly_N_Times<Stateful, L<Stateful>> { l, n };
+  }
 
-  // template<typename L>
-  // constexpr auto operator>=(const L& l, const size_t n)
-  // -> decltype(l == n & *l) {
-  //   return l == n & *l;
-  // }
+  constexpr auto x = just<5>(Success<Stateless> { });
 
-  // template<typename L>
-  // constexpr auto operator<(const L& l, const size_t n)
-  // -> decltype(l == n | *l) {
-  //   return l == n-1 | *l;
-  // }
+  template<size_t N, template<typename> class L>
+  constexpr auto more_than(const L<Stateless>& l)
+  -> decltype(just<N>(l) & +l) {
+    return just<N>(l) & +l;
+  }
 
-  // template<typename L>
-  // constexpr auto operator<=(const L&l, const size_t n)
-  // -> decltype((l == n) | *l) {
-  //   return (l == n) | *l;
-  // }
+  template<template<typename> class L>
+  constexpr auto operator>(const L<Stateful>& l, const size_t n)
+  -> decltype(l == n & +l) {
+    return l == n & +l;
+  }
 
-  // template<typename L>
-  // constexpr auto between(const size_t lo, const size_t hi, const L& l)
-  // -> decltype((l == lo) & (l <= hi)) {
-  //   return (l == lo) & (l <= hi);
-  // }
+  template<size_t N, template<typename> class L>
+  constexpr auto at_least(const L<Stateless>& l)
+  -> decltype(just<N> & *l) {
+    return just<N> & *l;
+  }
 
-  // template<size_t lo, size_t hi, typename L>
-  // constexpr auto between(const L& l)
-  // -> decltype((l == lo) & (l <= hi)) {
-  //   return (l == lo) & (l <= hi);
-  // }
+  template<template<typename> class L>
+  constexpr auto operator>=(const L<Stateful>& l, const size_t n)
+  -> decltype(l == n & *l) {
+    return l == n & *l;
+  }
+
+  template<size_t N, template<typename> class L>
+  constexpr auto less_than(const L<Stateless>& l)
+  -> decltype(just<N-1> | *l) {
+    return just<N-1> | *l;
+  }
+
+  template<template<typename> class L>
+  constexpr auto operator<(const L<Stateful>& l, const size_t n)
+  -> decltype(l == n | *l) {
+    return l == n-1 | *l;
+  }
+
+  template<size_t N, template<typename> class L>
+  constexpr auto at_most(const L<Stateless>& l)
+  -> decltype(just<N> | *l) {
+    return just<N> | *l;
+  }
+
+  template<template<typename> class L>
+  constexpr auto operator<=(const L<Stateful>&l, const size_t n)
+  -> decltype((l == n) | *l) {
+    return (l == n) | *l;
+  }
+
+  template<size_t lo, size_t hi, template<typename> class L>
+  constexpr auto between(const L<Stateless>& l)
+  -> decltype(just<lo>(l) & at_most<hi>(l)) {
+    return just<lo>(l) & at_most<hi>(l);
+  }
+
+  template<template<typename> class L>
+  constexpr auto between(const size_t lo, const size_t hi, const L<Stateful>& l)
+  -> decltype((l == lo) & (l <= hi)) {
+    return (l == lo) & (l <= hi);
+  }
+
 
   // template<typename L>
   // class Negation {
