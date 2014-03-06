@@ -26,8 +26,8 @@ namespace Munchar {
     MUNCHAR_CHARACTER( ampersand,       '&'  );
     MUNCHAR_CHARACTER( apostrophe,      '\'' );
     constexpr auto     s_quote        = apostrophe;
-    MUNCHAR_CHARACTER( l_paren,         '(' );
-    MUNCHAR_CHARACTER( r_paren,         ')' );
+    MUNCHAR_CHARACTER( l_paren,         '('  );
+    MUNCHAR_CHARACTER( r_paren,         ')'  );
     MUNCHAR_CHARACTER( asterisk,        '*'  );
     MUNCHAR_CHARACTER( plus,            '+'  );
     MUNCHAR_CHARACTER( comma,           ','  );
@@ -60,7 +60,7 @@ namespace Munchar {
     MUNCHAR_PREDICATE( hex_digit,       std::isxdigit );
     MUNCHAR_PREDICATE( whitespace,      std::isspace  );
     MUNCHAR_CLASS    ( sign,            "+-"          );
-    constexpr auto thing = plus & _;
+    constexpr auto thing = ~_;
     // constexpr auto id_start   = letter | underscore;
     // constexpr auto id_body    = alphanumeric | underscore;
     // constexpr auto identifier = id_start & *id_body;
