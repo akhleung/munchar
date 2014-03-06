@@ -1,8 +1,20 @@
 #ifndef MUNCHAR
 #define MUNCHAR
 
+#define MUNCHAR_CHARACTER(name, chr) constexpr auto name = just<chr>();
+
+#define MUNCHAR_KEYWORD(name, kwd)\
+constexpr char __MUNCHAR_CONSTANT_ ## name ## __[] = kwd;\
+constexpr auto name = just<__MUNCHAR_CONSTANT_ ## name ## __>();
+
+#define MUNCHAR_CLASS(name, cls)\
+constexpr char __MUNCHAR_CONSTANT_ ## name ## __[] = cls;\
+constexpr auto name = from<__MUNCHAR_CONSTANT_ ## name ## __>();
+
+#define MUNCHAR_PREDICATE(name, pred)\
+constexpr auto name = infer_types_from(pred).instantiate<pred>();
+
 #include <cstddef>
-#include <cctype>
 
 namespace Munchar {
 
@@ -10,61 +22,43 @@ namespace Munchar {
   enum class Stateful  { tag };
 
   template<typename T>
-  struct Success;
+  struct Success_;
 
   template<>
-  struct Success<Stateless> {
+  struct Success_<Stateless> {
     template<typename I>
     static I munch(I b, I e) {
       return b;
     }
   };
 
-  template<>
-  struct Success<Stateful> {
-    template<typename I>
-    I munch(I b, I e) const {
-      return b;
-    }
-  };
+  using Success = Success_<Stateless>;
 
   template<typename T>
-  struct Failure;
+  struct Failure_;
 
   template<>
-  struct Failure<Stateless> {
+  struct Failure_<Stateless> {
     template<typename I>
     static I munch(I b, I e) {
       return nullptr;
     }
   };
 
-  template<>
-  struct Failure<Stateful> {
-    template<typename I>
-    I munch(I b, I e) const {
-      return nullptr;
-    }
-  };
+  using Failure = Failure_<Stateless>;
 
   template<typename T>
-  struct Any;
+  struct Any_;
 
   template<>
-  struct Any<Stateless> {
+  struct Any_<Stateless> {
     template<typename I>
     static I munch(I b, I e) {
       return b != e ? ++b : nullptr;
     }
   };
 
-  template<>
-  struct Any<Stateful> {
-    template<typename I>
-    I munch(I b, I e) const {
-      return b != e ? ++b : nullptr;
-    }
-  };
+  using Any = Any_<Stateless>;
 
   template<typename T, const char C = 0>
   class Character;
@@ -88,6 +82,12 @@ namespace Munchar {
       return b != e && *b == c_ ? ++b : nullptr;
     }
   };
+
+  template<const char C>
+  constexpr auto just()
+  -> decltype(Character<Stateless, C> { }) {
+    return Character<Stateless, C> { };
+  }
 
   constexpr Character<Stateful> operator"" _lit(const char c) {
     return Character<Stateful> { c };
@@ -140,7 +140,7 @@ namespace Munchar {
   };
 
   template<const char* c, const size_t l = 0>
-  constexpr C_String<Stateless, c, l>cstr() {
+  constexpr C_String<Stateless, c, l>just() {
     return C_String<Stateless, c, l> { };
   }
 
@@ -191,6 +191,12 @@ namespace Munchar {
       return nullptr;
     }
   };
+
+  template<const char* C>
+  constexpr auto from()
+  -> decltype(Character_Class<Stateless, C> { }) {
+    return Character_Class<Stateless, C> { };
+  }
 
   constexpr auto operator"" _cls(const char* c, size_t len)
   -> decltype(Character_Class<Stateful> { c, len }) {
@@ -245,7 +251,7 @@ namespace Munchar {
     }
   };
 
-  template<template<typename> class L, template<typename> class R>
+  template<template<typename...> class L, template<typename...> class R>
   constexpr auto operator&(const L<Stateless>&, const R<Stateless>&)
   -> decltype(Sequence<Stateless, L<Stateless>, R<Stateless>> { }) {
     return Sequence<Stateless, L<Stateless>, R<Stateless>> { };
@@ -387,14 +393,14 @@ namespace Munchar {
 
   template<template<typename> class L>
   constexpr auto operator~(const L<Stateless>& l)
-  -> decltype(l | Success<Stateless> { }) {
-    return l | Success<Stateless> { };
+  -> decltype(l | Success { }) {
+    return l | Success { };
   }
 
   template<template<typename> class L>
   constexpr auto operator~(const L<Stateful>& l)
-  -> decltype(l | Success<Stateful> { }) {
-    return l | Success<Stateful> { };
+  -> decltype(l | Success { }) {
+    return l | Success { };
   }
 
   template<typename T, typename L, size_t N = 0>
@@ -437,8 +443,6 @@ namespace Munchar {
   -> decltype(Exactly_N_Times<Stateful, L<Stateful>> { l, n }) {
     return Exactly_N_Times<Stateful, L<Stateful>> { l, n };
   }
-
-  constexpr auto x = just<5>(Success<Stateless> { });
 
   template<size_t N, template<typename> class L>
   constexpr auto more_than(const L<Stateless>& l)
@@ -529,8 +533,6 @@ namespace Munchar {
     return Negation<Stateless, L<Stateless>> { };
   }
 
-  constexpr auto y = !Success<Stateless>{};
-
   template<template<typename> class L>
   constexpr Negation<Stateful, L<Stateful>> operator!(const L<Stateful>& l) {
     return Negation<Stateful, L<Stateful>> { l };
@@ -575,8 +577,11 @@ namespace Munchar {
 
   template<typename In, typename Out>
   class Predicate<Stateless, In, Out> {
+    template<typename T, Out(*P)(In) = nullptr>
+    struct Function;
+
     template<Out(*P)(In)>
-    struct Function {
+    struct Function<Stateless, P> {
       template<typename I>
       static I munch(I b, I e) {
         return (b != e) && P(b) ? ++b : nullptr;
@@ -584,7 +589,13 @@ namespace Munchar {
     };
   public:
     template<Out(*P)(In)>
-    static constexpr Function<P> from() { return Function<P> { }; }
+    static constexpr Function<Stateless, P> from() {
+      return Function<Stateless, P> { };
+    }
+    template<Out(*P)(In)>
+    static constexpr Function<Stateless, P> instantiate() {
+      return from<P>();
+    }
   };
 
   template<typename In, typename Out>
@@ -604,11 +615,27 @@ namespace Munchar {
     return Predicate<Stateless, I, O>::template from<p>();
   }
 
-  constexpr auto z = P<int, int, std::isalpha>();
-
   template<typename I, typename O>
   constexpr Predicate<Stateful, I, O> P(O (* const p)(I)) {
     return Predicate<Stateful, I, O> { p };
+  }
+
+  template<int(*p)(int)>
+  constexpr auto ctype()
+  -> decltype(Predicate<Stateless, int, int>::template from<p>()) {
+    return Predicate<Stateless, int, int>::template from<p>();
+  }
+
+  template<bool(*p)(const char)>
+  constexpr auto P()
+  -> decltype(Predicate<Stateless, bool, const char>::template from<p>()) {
+    return Predicate<Stateless, bool, const char>::template from<p>();
+  }
+
+  template<typename I, typename O>
+  constexpr auto infer_types_from(O(*p)(I))
+  -> decltype(Predicate<Stateless, I, O> { }) {
+    return Predicate<Stateless, I, O> { };
   }
 
 }
