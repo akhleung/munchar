@@ -225,13 +225,13 @@ namespace Munchar {
   }
 
   template<typename I, typename O>
-  constexpr auto infer_signature(O (p)(I))
+  constexpr auto infer_predicate_signature(O (p)(I))
   -> decltype(Predicate<O(I), true> { }) {
     return Predicate<O(I), true> { };
   }
 
   #define MUNCHAR_STATIC_PREDICATE(p)\
-  (infer_signature(p).instantiate<p>())
+  (infer_predicate_signature(p).instantiate<p>())
 
   // // Wrapper for functions that implement the Munchar interface
 
