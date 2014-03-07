@@ -5,11 +5,15 @@
 
 namespace Munchar {
 
+  // Unconditional success
+
   struct Success {
     const char* operator()(const char* b, const char* e) const {
       return b;
     }
   };
+
+  // Unconditional failure
 
   struct Failure {
     const char* operator()(const char* b, const char* e) const {
@@ -17,11 +21,15 @@ namespace Munchar {
     }
   };
 
+  // Arbitrary character
+
   struct Any_Char {
     const char* operator()(const char* b, const char* e) const {
       return b != e ? b+1 : nullptr;
     }
   };
+
+  // Character constant
 
   class Char {
     const char c_;
@@ -35,6 +43,8 @@ namespace Munchar {
   constexpr Char operator"" _lit(const char c) {
     return Char { c };
   }
+
+  // String constant
 
   template<typename Ptr = const char*>
   class Str {
@@ -54,6 +64,8 @@ namespace Munchar {
   constexpr Str<> operator"" _lit(const char* c, size_t len) {
     return Str<> { c, len };
   }
+
+  // Character class
 
   template<typename Ptr = const char*>
   class Char_Class {
@@ -238,6 +250,8 @@ namespace Munchar {
     return Lookahead<M> { m };
   }
 
+  // Predicate
+
   template<typename P>
   class Predicate {
     const P p_;
@@ -251,6 +265,7 @@ namespace Munchar {
   template<typename I, typename O>
   class Predicate<O(*)(I)> {
     O (*const p_)(I);
+  public:
     constexpr Predicate(O (*const p)(I)) : p_(p) { }
     const char* operator()(const char* b, const char* e) const {
       return (b != e) && p_(*b) ? b+1 : nullptr;
