@@ -40,8 +40,13 @@ namespace Munchar {
     constexpr auto colon         = ':'_lit;
     constexpr auto semicolon     = ';'_lit;
     constexpr auto less_than     = '<'_lit;
+    constexpr auto lt            = less_than;
+    constexpr auto lte           = "<="_lit;
     constexpr auto equals        = '='_lit;
+    constexpr auto eq            = equals;
     constexpr auto greater_than  = '>'_lit;
+    constexpr auto gt            = greater_than;
+    constexpr auto gte           = ">="_lit;
     constexpr auto question      = '?'_lit;
     constexpr auto at            = '@'_lit;
     constexpr auto left_bracket  = '['_lit;
@@ -58,17 +63,20 @@ namespace Munchar {
     constexpr auto tilde         = '~'_lit;
 
     constexpr auto _             = Any_Char { };
-    constexpr auto letter        = P(std::isalpha);
-    constexpr auto alphanumeric  = P(std::isalnum);
-    constexpr auto digit         = P(std::isdigit);
-    constexpr auto hex_digit     = P(std::isxdigit);
-    constexpr auto ws_char       = P(std::isspace);
+    constexpr auto letter        = MUNCHAR_STATIC_PREDICATE(std::isalpha);
+    constexpr auto alphanumeric  = MUNCHAR_STATIC_PREDICATE(std::isalnum);
+    constexpr auto digit         = MUNCHAR_STATIC_PREDICATE(std::isdigit);
+    constexpr auto hex_digit     = MUNCHAR_STATIC_PREDICATE(std::isxdigit);
+    constexpr auto ws_char       = MUNCHAR_STATIC_PREDICATE(std::isspace);
     constexpr auto whitespace    = *ws_char;
     constexpr auto sign          = "+-"_cls;
     constexpr auto id_start      = letter | underscore;
     constexpr auto id_body       = alphanumeric | underscore;
     constexpr auto identifier    = id_start^*id_body;
-    constexpr auto number        = ~sign ^ ((*digit^'.'_lit^+digit) | +digit);
+    constexpr auto integer       = ~sign ^ +digit;
+    constexpr auto real          = (integer|sign)^dot^+digit^~('e'_lit^integer);
+    constexpr auto number        = real | integer;
+
   }
 }
 

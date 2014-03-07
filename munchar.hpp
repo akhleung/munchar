@@ -56,26 +56,47 @@ namespace Munchar {
     return Char { c };
   }
 
+  constexpr Char CHR(const char c) {
+    return Char { c };
+  }
+
   // String constant
 
-  template<typename Ptr = const char*>
+  template<typename Ptr = const char*, bool with_len = true>
   class Str {
     Ptr s_;
     size_t len_;
   public:
-    constexpr Str(Ptr s, size_t len) : s_(s), len_(len) { }
+    constexpr Str(const Ptr& s, size_t len) : s_(s), len_(len) { }
     const char* operator()(const char* b, const char* e) const {
       Ptr s = s_;
       for (size_t i = 0; i < len_; ++i, ++b, ++s) {
-        if (!(b < e) || (*s_ != *b)) return nullptr;
+        if (!(b < e) || (*s != *b)) return nullptr;
       }
       return b;
     }
     const char* operator()(const char* b) const {
       Ptr s = s_;
       for (size_t i = 0; i < len_; ++i, ++b, ++s) {
-        if (!*b || (*s_ != *b)) return nullptr;
+        if (!*b || (*s != *b)) return nullptr;
       }
+      return b;
+    }
+  };
+
+  template<typename Ptr>
+  class Str<Ptr, false> {
+    Ptr s_;
+  public:
+    constexpr Str(const Ptr& s) : s_(s) { }
+    const char* operator()(const char* b, const char* e) const {
+      Ptr s = s_;
+      for (Ptr s = s_; *s; ++s) if (!(b < e) || (*s != *b)) return nullptr;
+      return b;
+    }
+    const char* operator()(const char* b) const {
+      Ptr s = s_;
+      for (Ptr s = s_; *s; ++s) if (!*b || (*s != *b)) return nullptr;
       return b;
     }
   };
@@ -84,14 +105,24 @@ namespace Munchar {
     return Str<> { c, len };
   }
 
+  template<typename Ptr>
+  constexpr Str<Ptr, true> STR(const Ptr& s, size_t len) {
+    return Str<Ptr, true> { s, len };
+  }
+
+  template<typename Ptr>
+  constexpr Str<Ptr, false> STR(const Ptr& s) {
+    return Str<Ptr, false> { s };
+  }
+
   // Character class
 
-  template<typename Ptr = const char*>
+  template<typename Ptr = const char*, bool with_len = true>
   class Char_Class {
     Ptr s_;
     size_t len_;
   public:
-    constexpr Char_Class(Ptr s, size_t len) : s_(s), len_(len) { }
+    constexpr Char_Class(const Ptr& s, size_t len) : s_(s), len_(len) { }
     const char* operator()(const char* b, const char* e) const {
       if (!(b < e)) return nullptr;
       Ptr s = s_;
@@ -106,13 +137,40 @@ namespace Munchar {
     }
   };
 
+  template<typename Ptr>
+  class Char_Class<Ptr, false> {
+    Ptr s_;
+  public:
+    constexpr Char_Class(const Ptr& s) : s_(s) { }
+    const char* operator()(const char* b, const char* e) const {
+      if (!(b < e)) return nullptr;
+      for (Ptr s = s_; *s; ++s) if (*s == *b) return b+1;
+      return nullptr;
+    }
+    const char* operator()(const char* b) const {
+      if (!*b) return nullptr;
+      for (Ptr s = s_; *s; ++s) if (*s == *b) return b+1;
+      return nullptr;
+    }
+  };
+
   constexpr Char_Class<> operator"" _cls(const char* c, size_t len) {
     return Char_Class<> { c, len };
   }
 
+  template<typename Ptr>
+  constexpr Char_Class<Ptr, true> CLS(const Ptr& s, size_t len) {
+    return Char_Class<Ptr, true> { s, len };
+  }
+
+  template<typename Ptr>
+  constexpr Char_Class<Ptr, false> CLS(const Ptr& s) {
+    return Char_Class<Ptr, false> { s };
+  }
+
   // Predicate
 
-  template<typename P>
+  template<typename P, bool is_static = false>
   class Predicate {
     P p_;
   public:
@@ -126,7 +184,7 @@ namespace Munchar {
   };
 
   template<typename I, typename O>
-  class Predicate<O(I)> {
+  class Predicate<O(I), false> {
     O (*const p_)(I);
   public:
     constexpr Predicate(O(p)(I)) : p_(p) { }
@@ -135,6 +193,24 @@ namespace Munchar {
     }
     const char* operator()(const char* b) const {
       return *b && p_(*b) ? b+1 : nullptr;
+    }
+  };
+
+  template<typename I, typename O>
+  class Predicate<O(I), true> {
+    template<O(p_)(I)>
+    struct Static {
+      const char* operator()(const char* b, const char* e) const {
+        return (b < e) && p_(*b) ? b+1 : nullptr;
+      }
+      const char* operator()(const char* b) const {
+        return *b && p_(*b) ? b+1 : nullptr;
+      }
+    };
+  public:
+    template<O(p)(I)>
+    constexpr Static<p> instantiate() const {
+      return Static<p> { };
     }
   };
 
@@ -147,6 +223,15 @@ namespace Munchar {
   constexpr Predicate<O(I)> P(O (p)(I)) {
     return Predicate<O(I)> { p };
   }
+
+  template<typename I, typename O>
+  constexpr auto infer_signature(O (p)(I))
+  -> decltype(Predicate<O(I), true> { }) {
+    return Predicate<O(I), true> { };
+  }
+
+  #define MUNCHAR_STATIC_PREDICATE(p)\
+  (infer_signature(p).instantiate<p>())
 
   // // Wrapper for functions that implement the Munchar interface
 
