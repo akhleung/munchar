@@ -117,7 +117,7 @@ namespace Munchar {
     return Predicate<O (*)(I)> { p };
   }
 
-  // Function
+  // Wrapper for functions that implement the Munchar interface
 
   class Function {
     const char* (*f_)(const char*, const char*);
