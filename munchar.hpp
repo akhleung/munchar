@@ -119,17 +119,23 @@ namespace Munchar {
 
   // Wrapper for functions that implement the Munchar interface
 
+  template<typename F>
   class Function {
-    const char* (*f_)(const char*, const char*);
+    F f_;
   public:
-    constexpr Function(const char* (*f)(const char*, const char*)) : f_(f) { }
-    const char* operator()(const char* b, const char* e) const {
+    constexpr Function(const F& f) : f_(f) { }
+    const char * operator()(const char* b, const char* e) const {
       return f_(b, e);
     }
   };
 
-  constexpr Function F(const char* (*f)(const char*, const char*)) {
-    return Function { f };
+  template<typename Fn>
+  constexpr Function<Fn> F(Fn f) {
+    return Function<Fn> { f };
+  }
+
+  const char* munch2(const char* b, const char* e) {
+    return b-e < 2 ? nullptr : b+2;
   }
 
   // Base class for unary combinators
