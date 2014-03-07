@@ -85,6 +85,53 @@ namespace Munchar {
     return Char_Class<> { c, len };
   }
 
+  // Predicate
+
+  template<typename P>
+  class Predicate {
+    const P p_;
+  public:
+    constexpr Predicate(const P& p) : p_(p) { }
+    const char* operator()(const char* b, const char* e) const {
+      return (b != e) && p_(*b) ? b+1 : nullptr;
+    }
+  };
+
+  template<typename I, typename O>
+  class Predicate<O (*)(I)> {
+    O (*const p_)(I);
+  public:
+    constexpr Predicate(O (*const p)(I)) : p_(p) { }
+    const char* operator()(const char* b, const char* e) const {
+      return (b != e) && p_(*b) ? b+1 : nullptr;
+    }
+  };
+
+  template<typename PT>
+  constexpr Predicate<PT> P(const PT& p) {
+    return Predicate<PT> { p };
+  }
+
+  template<typename I, typename O>
+  constexpr Predicate<O (*)(I)> P(O (*const p)(I)) {
+    return Predicate<O (*)(I)> { p };
+  }
+
+  // Function
+
+  class Function {
+    const char* (*f_)(const char*, const char*);
+  public:
+    constexpr Function(const char* (*f)(const char*, const char*)) : f_(f) { }
+    const char* operator()(const char* b, const char* e) const {
+      return f_(b, e);
+    }
+  };
+
+  constexpr Function F(const char* (*f)(const char*, const char*)) {
+    return Function { f };
+  }
+
   // Base class for unary combinators
 
   template<typename M>
@@ -248,38 +295,6 @@ namespace Munchar {
   template<typename M>
   constexpr Lookahead<M> operator&(const M& m) {
     return Lookahead<M> { m };
-  }
-
-  // Predicate
-
-  template<typename P>
-  class Predicate {
-    const P p_;
-  public:
-    constexpr Predicate(const P& p) : p_(p) { }
-    const char* operator()(const char* b, const char* e) const {
-      return (b != e) && p_(*b) ? b+1 : nullptr;
-    }
-  };
-
-  template<typename I, typename O>
-  class Predicate<O (*)(I)> {
-    O (*const p_)(I);
-  public:
-    constexpr Predicate(O (*const p)(I)) : p_(p) { }
-    const char* operator()(const char* b, const char* e) const {
-      return (b != e) && p_(*b) ? b+1 : nullptr;
-    }
-  };
-
-  template<typename PT>
-  constexpr Predicate<PT> P(const PT& p) {
-    return Predicate<PT> { p };
-  }
-
-  template<typename I, typename O>
-  constexpr Predicate<O (*)(I)> P(O (*const p)(I)) {
-    return Predicate<O (*)(I)> { p };
   }
 
 }
