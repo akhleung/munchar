@@ -12,5 +12,8 @@
 *.la
 *.a
 
+# The default name for compiled binaries
+a.out
+
 # g++'s compiled headers
 *.gch
