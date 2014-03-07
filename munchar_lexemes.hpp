@@ -62,12 +62,13 @@ namespace Munchar {
     constexpr auto alphanumeric  = P(std::isalnum);
     constexpr auto digit         = P(std::isdigit);
     constexpr auto hex_digit     = P(std::isxdigit);
-    constexpr auto whitespace    = P(std::isspace);
+    constexpr auto ws_char       = P(std::isspace);
+    constexpr auto whitespace    = *ws_char;
     constexpr auto sign          = "+-"_cls;
-    // constexpr auto id_start = letter | underscore;
-    // constexpr auto id_body = alphanumeric | underscore;
-    // constexpr auto identifier = id_start & *id_body;
-    // constexpr auto number = ~sign & ((*digit & '.'_lit_lit & +digit) | +digit);
+    constexpr auto id_start      = letter | underscore;
+    constexpr auto id_body       = alphanumeric | underscore;
+    constexpr auto identifier    = id_start^*id_body;
+    constexpr auto number        = ~sign ^ ((*digit^'.'_lit^+digit) | +digit);
   }
 }
 

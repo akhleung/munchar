@@ -11,6 +11,9 @@ namespace Munchar {
     const char* operator()(const char* b, const char* e) const {
       return b;
     }
+    const char* operator()(const char* b) const {
+      return b;
+    }
   };
 
   // Unconditional failure
@@ -19,13 +22,19 @@ namespace Munchar {
     const char* operator()(const char* b, const char* e) const {
       return nullptr;
     }
+    const char* operator()(const char* b) const {
+      return nullptr;
+    }
   };
 
   // Arbitrary character
 
   struct Any_Char {
     const char* operator()(const char* b, const char* e) const {
-      return b != e ? b+1 : nullptr;
+      return b < e ? b+1 : nullptr;
+    }
+    const char* operator()(const char* b) const {
+      return *b ? b+1 : nullptr;
     }
   };
 
@@ -36,7 +45,10 @@ namespace Munchar {
   public:
     constexpr Char(const char c) : c_(c) { }
     const char* operator()(const char* b, const char* e) const {
-      return b != e && *b == c_ ? b+1 : nullptr;
+      return b < e && *b == c_ ? b+1 : nullptr;
+    }
+    const char* operator()(const char* b) const {
+      return *b && *b == c_ ? b+1 : nullptr;
     }
   };
 
@@ -55,7 +67,14 @@ namespace Munchar {
     const char* operator()(const char* b, const char* e) const {
       Ptr s = s_;
       for (size_t i = 0; i < len_; ++i, ++b, ++s) {
-        if ((b == e) || (*s_ != *b)) return nullptr;
+        if (!(b < e) || (*s_ != *b)) return nullptr;
+      }
+      return b;
+    }
+    const char* operator()(const char* b) const {
+      Ptr s = s_;
+      for (size_t i = 0; i < len_; ++i, ++b, ++s) {
+        if (!*b || (*s_ != *b)) return nullptr;
       }
       return b;
     }
@@ -74,7 +93,13 @@ namespace Munchar {
   public:
     constexpr Char_Class(Ptr s, size_t len) : s_(s), len_(len) { }
     const char* operator()(const char* b, const char* e) const {
-      if (b == e) return nullptr;
+      if (!(b < e)) return nullptr;
+      Ptr s = s_;
+      for (size_t i = 0; i < len_; ++i, ++s) if (*s == *b) return b+1;
+      return nullptr;
+    }
+    const char* operator()(const char* b) const {
+      if (!*b) return nullptr;
       Ptr s = s_;
       for (size_t i = 0; i < len_; ++i, ++s) if (*s == *b) return b+1;
       return nullptr;
@@ -89,21 +114,27 @@ namespace Munchar {
 
   template<typename P>
   class Predicate {
-    const P p_;
+    P p_;
   public:
     constexpr Predicate(const P& p) : p_(p) { }
     const char* operator()(const char* b, const char* e) const {
-      return (b != e) && p_(*b) ? b+1 : nullptr;
+      return (b < e) && p_(*b) ? b+1 : nullptr;
+    }
+    const char* operator()(const char* b) const {
+      return *b && p_(*b) ? b+1 : nullptr;
     }
   };
 
   template<typename I, typename O>
-  class Predicate<O (*)(I)> {
+  class Predicate<O(I)> {
     O (*const p_)(I);
   public:
-    constexpr Predicate(O (*const p)(I)) : p_(p) { }
+    constexpr Predicate(O(p)(I)) : p_(p) { }
     const char* operator()(const char* b, const char* e) const {
-      return (b != e) && p_(*b) ? b+1 : nullptr;
+      return (b < e) && p_(*b) ? b+1 : nullptr;
+    }
+    const char* operator()(const char* b) const {
+      return *b && p_(*b) ? b+1 : nullptr;
     }
   };
 
@@ -113,30 +144,29 @@ namespace Munchar {
   }
 
   template<typename I, typename O>
-  constexpr Predicate<O (*)(I)> P(O (*const p)(I)) {
-    return Predicate<O (*)(I)> { p };
+  constexpr Predicate<O(I)> P(O (p)(I)) {
+    return Predicate<O(I)> { p };
   }
 
-  // Wrapper for functions that implement the Munchar interface
+  // // Wrapper for functions that implement the Munchar interface
 
-  template<typename F>
-  class Function {
-    F f_;
-  public:
-    constexpr Function(const F& f) : f_(f) { }
-    const char * operator()(const char* b, const char* e) const {
-      return f_(b, e);
-    }
-  };
+  // template<typename F>
+  // class Function {
+  //   F f_;
+  // public:
+  //   constexpr Function(const F& f) : f_(f) { }
+  //   const char* operator()(const char* b, const char* e) const {
+  //     return f_(b, e);
+  //   }
+  //   const char* operator()(const char* b) const {
+  //     return f_(b);
+  //   }
+  // };
 
-  template<typename Fn>
-  constexpr Function<Fn> F(Fn f) {
-    return Function<Fn> { f };
-  }
-
-  const char* munch2(const char* b, const char* e) {
-    return b-e < 2 ? nullptr : b+2;
-  }
+  // template<typename Fn>
+  // constexpr Function<Fn> F(Fn f) {
+  //   return Function<Fn> { f };
+  // }
 
   // Base class for unary combinators
 
@@ -168,6 +198,9 @@ namespace Munchar {
     const char* operator()(const char* b, const char* e) const {
       return (b = this->l_(b, e)) ? this->r_(b, e) : nullptr;
     }
+    const char* operator()(const char* b) const {
+      return (b = this->l_(b)) ? this->r_(b) : nullptr;
+    }
   };
 
   template<typename L, typename R>
@@ -182,7 +215,12 @@ namespace Munchar {
   public:
     using Binary<L, R>::Binary;
     const char* operator()(const char* b, const char* e) const {
-      return (b = this->l_(b, e)) ? b : this->r_(b, e);
+      const char* p = this->l_(b);
+      return p ? p : this->r_(b, e);
+    }
+    const char* operator()(const char* b) const {
+      const char* p = this->l_(b);
+      return p ? p : this->r_(b);
     }
   };
 
@@ -209,6 +247,10 @@ namespace Munchar {
       for (const char* p = b; (p = this->m_(b, e)); b = p) ;
       return b;
     }
+    const char* operator()(const char* b) const {
+      for (const char* p = b; (p = this->m_(b)); b = p) ;
+      return b;
+    }
   };
 
   template<typename M>
@@ -232,6 +274,11 @@ namespace Munchar {
     const char* operator()(const char* b, const char* e) const {
       size_t i;
       for (i = 0; i < n_ && (b = this->m_(b, e)); ++i) ;
+      return i == n_ ? b : nullptr;
+    }
+    const char* operator()(const char* b) const {
+      size_t i;
+      for (i = 0; i < n_ && (b = this->m_(b)); ++i) ;
       return i == n_ ? b : nullptr;
     }
   };
@@ -280,6 +327,9 @@ namespace Munchar {
     const char* operator()(const char* b, const char* e) const {
       return this->m_(b, e) ? nullptr : b;
     }
+    const char* operator()(const char* b) const {
+      return this->m_(b) ? nullptr : b;
+    }
   };
 
   template<typename M>
@@ -295,6 +345,9 @@ namespace Munchar {
     using Unary<M>::Unary;
     const char* operator()(const char* b, const char* e) const {
       return this->m_(b, e) ? b : nullptr;
+    }
+    const char* operator()(const char* b) const {
+      return this->m_(b) ? b : nullptr;
     }
   };
 
