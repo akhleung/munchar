@@ -74,8 +74,8 @@ namespace Munchar {
     constexpr auto id_body       = alphanumeric | underscore;
     constexpr auto identifier    = id_start^*id_body;
     constexpr auto integer       = ~sign ^ +digit;
-    constexpr auto real          = (integer|sign)^dot^+digit^~('e'_lit^integer);
-    constexpr auto number        = real | integer;
+    constexpr auto number_ne     = (~sign ^ *digit ^ dot ^ +digit) | +digit;
+    constexpr auto number        = number_ne ^ ~("eE"_cls ^ ~sign ^ +digit);
 
   }
 }
