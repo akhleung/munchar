@@ -263,7 +263,7 @@ namespace Munchar {
   };
 
   template<typename I, typename O>
-  class Predicate<O(*)(I)> {
+  class Predicate<O (*)(I)> {
     O (*const p_)(I);
   public:
     constexpr Predicate(O (*const p)(I)) : p_(p) { }
@@ -278,8 +278,8 @@ namespace Munchar {
   }
 
   template<typename I, typename O>
-  constexpr Predicate<O(*)(I)> P(O (*const p)(I)) {
-    return Predicate<O(*)(I)> { p };
+  constexpr Predicate<O (*)(I)> P(O (*const p)(I)) {
+    return Predicate<O (*)(I)> { p };
   }
 
 }
