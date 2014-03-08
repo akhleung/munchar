@@ -2,8 +2,6 @@
 #define MUNCHAR
 
 #include <cstddef>
-#include <iostream>
-using namespace std;
 
 namespace Munchar {
 
@@ -172,50 +170,6 @@ namespace Munchar {
 
   // Predicate
 
-  // template<typename P, bool is_static = false>
-  // class Predicate {
-  //   P p_;
-  // public:
-  //   constexpr Predicate(const P& p) : p_(p) { }
-  //   const char* operator()(const char* b, const char* e) const {
-  //     return (b < e) && p_(*b) ? b+1 : nullptr;
-  //   }
-  //   const char* operator()(const char* b) const {
-  //     return *b && p_(*b) ? b+1 : nullptr;
-  //   }
-  // };
-
-  // template<typename I, typename O>
-  // class Predicate<O(I), false> {
-  //   O (*const p_)(I);
-  // public:
-  //   constexpr Predicate(O(p)(I)) : p_(p) { }
-  //   const char* operator()(const char* b, const char* e) const {
-  //     return (b < e) && p_(*b) ? b+1 : nullptr;
-  //   }
-  //   const char* operator()(const char* b) const {
-  //     return *b && p_(*b) ? b+1 : nullptr;
-  //   }
-  // };
-
-  // template<typename I, typename O>
-  // class Predicate<O(I), true> {
-  //   template<O(p_)(I)>
-  //   struct Static {
-  //     const char* operator()(const char* b, const char* e) const {
-  //       return (b < e) && p_(*b) ? b+1 : nullptr;
-  //     }
-  //     const char* operator()(const char* b) const {
-  //       return *b && p_(*b) ? b+1 : nullptr;
-  //     }
-  //   };
-  // public:
-  //   template<O(p)(I)>
-  //   constexpr Static<p> instantiate() const {
-  //     return Static<p> { };
-  //   }
-  // };
-
   template<typename I, typename O, bool is_static = false>
   class Predicate {
     O (*const p_)(I);
@@ -246,24 +200,6 @@ namespace Munchar {
       return Static<p> { };
     }
   };
-
-  // template<typename P, bool is_static = false>
-  // class Predicate {
-  //   P p_;
-  // public:
-  //   constexpr Predicate(P p) : p_(p) { }
-  //   const char* operator()(const char* b, const char* e) const {
-  //     return (b < e) && p_(*b) ? b+1 : nullptr;
-  //   }
-  //   const char* operator()(const char* b) const {
-  //     return *b && p_(*b) ? b+1 : nullptr;
-  //   }
-  // };
-
-  // template<typename PT>
-  // constexpr Predicate<PT> P(const PT& p) {
-  //   return Predicate<PT> { p };
-  // }
 
   template<typename I, typename O>
   constexpr Predicate<I, O> P(O (p)(I)) {

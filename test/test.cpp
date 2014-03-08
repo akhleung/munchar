@@ -5,7 +5,6 @@
 #include "../include/munchar.hpp"
 #include "../include/munchar_lexemes.hpp"
 
-using namespace std;
 using namespace Munchar;
 using namespace Munchar::Lexemes;
 
@@ -15,6 +14,7 @@ void pass(const T& t, const char* input, const char* result) {
   if (std::string(input, after-input) != std::string(result)) {
     throw std::string("test should have passed on ") + input + ", " + result;
   }
+  std::cerr << ".";
 }
 
 template<typename T>
@@ -86,9 +86,9 @@ int main() {
     pass(*("foo"_lit | "bar"_lit), "", "");
   }
   catch (std::string& msg) {
-    cerr << msg << endl;
+    std::cerr << msg << std::endl;
     return 1;
   }
-  cerr << "all tests passed" << endl;
+  std::cerr << std::endl << "all tests passed" << std::endl;
   return 0;
 }
