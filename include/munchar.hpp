@@ -381,8 +381,8 @@ namespace Munchar {
 
   template<typename M>
   constexpr auto between(size_t a, size_t b, const M& m)
-  -> decltype((m == a) ^ (m <= b)) {
-    return (m == a) ^ (m <= b);
+  -> decltype((m == b) | (m >= a)) {
+    return (a < b) ? (m == b) | (m >= a) : (m == a) | (m >= b);
   }
 
   // Negation

@@ -50,7 +50,7 @@ namespace Munchar {
     constexpr auto question      = '?'_lit;
     constexpr auto at            = '@'_lit;
     constexpr auto left_bracket  = '['_lit;
-    constexpr auto backslash     = '\\';
+    constexpr auto backslash     = '\\'_lit;
     constexpr auto right_bracket = ']'_lit;
     constexpr auto caret         = '^'_lit;
     constexpr auto circumflex    = caret;
@@ -74,7 +74,7 @@ namespace Munchar {
     constexpr auto id_body       = alphanumeric | underscore;
     constexpr auto identifier    = id_start^*id_body;
     constexpr auto integer       = ~sign ^ +digit;
-    constexpr auto number_ne     = (~sign ^ *digit ^ dot ^ +digit) | +digit;
+    constexpr auto number_ne     = ~sign ^ ((*digit ^ dot ^ +digit) | +digit);
     constexpr auto number        = number_ne ^ ~("eE"_cls ^ ~sign ^ +digit);
     constexpr auto escape_seq    = backslash ^ _;
     constexpr auto d_string      = double_quote ^
