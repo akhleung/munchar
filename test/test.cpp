@@ -8,12 +8,15 @@
 using namespace Munchar;
 using namespace Munchar::Lexemes;
 
+size_t COUNT = 0;
+
 template<typename T>
 void pass(const T& t, const char* input, const char* result) {
   const char* after = t(input);
   if (std::string(input, after-input) != std::string(result)) {
     throw std::string("test should have passed on ") + input + ", " + result;
   }
+  ++COUNT;
   std::cerr << ".";
 }
 
@@ -84,11 +87,17 @@ int main() {
     pass(*("foo"_lit | "bar"_lit), "foobarfoofoobarstop", "foobarfoofoobar");
     pass(*("foo"_lit | "bar"_lit), "f", "");
     pass(*("foo"_lit | "bar"_lit), "", "");
+
+    pass(+("foo"_lit | "bar"_lit), "foobarfoofoobarstop", "foobarfoofoobar");
+    fail(+("foo"_lit | "bar"_lit), "f");
+    fail(+("foo"_lit | "bar"_lit), "");
+
+
   }
   catch (std::string& msg) {
     std::cerr << msg << std::endl;
     return 1;
   }
-  std::cerr << std::endl << "all tests passed" << std::endl;
+  std::cerr << std::endl << COUNT << " tests passed (that's all of them)" << std::endl;
   return 0;
 }
