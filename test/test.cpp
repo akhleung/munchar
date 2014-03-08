@@ -1,4 +1,5 @@
 #include <cctype>
+#include <cstring>
 #include <string>
 #include <vector>
 #include <iostream>
@@ -25,6 +26,14 @@ void pass(const T& t, const char* input, const char* result) {
     std::cerr << "F";
     return;
   }
+  after = t(input, input+strlen(input));
+  if (!after || std::string(input, after-input) != std::string(result)) {
+    std::stringstream msg;
+    msg << "test " << TEST_NUM << " should have passed on " << input << ", " << result << std::endl;
+    errors.push_back(msg.str());
+    std::cerr << "F";
+    return;
+  }
   ++COUNT;
   std::cerr << ".";
 }
@@ -33,6 +42,14 @@ template<typename T>
 void fail(const T& t, const char* input) {
   ++TEST_NUM;
   const char* after = t(input);
+  if (after) {
+    std::stringstream msg;
+    msg << "test " << TEST_NUM << " should have failed on " << input << std::endl;
+    errors.push_back(msg.str());
+    std::cerr << "F";
+    return;
+  }
+  after = t(input, input+strlen(input));
   if (after) {
     std::stringstream msg;
     msg << "test " << TEST_NUM << " should have failed on " << input << std::endl;
