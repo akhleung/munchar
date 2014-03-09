@@ -84,6 +84,10 @@ namespace Munchar {
                                    *(escape_seq | (!"'\\"_cls ^ _)) ^
                                    single_quote;
     constexpr auto string        = d_string | s_string;
+    constexpr auto eol           = newline | crlf;
+    constexpr auto c_comment     = "//"_lit ^ *(!eol ^ _) ^ ~eol;
+    constexpr auto cpp_comment   = "/*"_lit ^ *(!"*/"_lit ^ _) ^ "*/"_lit;
+    constexpr auto sh_comment    = '#'_lit ^ *(!eol ^ _) ^ ~eol;
 
   }
 }

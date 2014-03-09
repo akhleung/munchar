@@ -214,6 +214,19 @@ int main() {
   fail(string, "\"an unterminated string");
   fail(string, "'a mis-delimited string\"");
 
+  pass(c_comment, "// blah blah blah\nnext line", "// blah blah blah\n");
+  pass(c_comment, "// on Windows\r\nnext line", "// on Windows\r\n");
+  pass(c_comment, "// blah blah EOF", "// blah blah EOF");
+
+  pass(cpp_comment, "/* block comment */ blah", "/* block comment */");
+  pass(cpp_comment, "/* multiline\ncomment */ blah", "/* multiline\ncomment */");
+  pass(cpp_comment, "/* nested /* comment */ extra */", "/* nested /* comment */");
+  fail(cpp_comment, "/* unterminated ");
+
+  pass(sh_comment, "# blah blah blah\nnext line", "# blah blah blah\n");
+  pass(sh_comment, "# on Windows\r\nnext line", "# on Windows\r\n");
+  pass(sh_comment, "# blah blah EOF", "# blah blah EOF");
+
   if (!errors.empty()) {
     std::cerr << std::endl << TEST_NUM - COUNT << " tests failed:" << std::endl;
     for (auto &msg : errors) std::cerr << msg;
