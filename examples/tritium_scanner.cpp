@@ -2,7 +2,7 @@
 #include <string>
 #include <sstream>
 #include <iostream>
-#include <utility>
+#include <chrono>
 
 #include "../include/munchar.hpp"
 #include "../include/munchar_lexemes.hpp"
@@ -72,13 +72,15 @@ vector<Lexeme> lexemes;
 
 int main() {
 
-  stringstream ss;
+  stringstream ss, timing_msg;
   for (char c = 0; (c = getchar()) != EOF; ss << c) ;
 
   auto src_str = ss.str();
   auto src = src_str.c_str();
   const char* pos = src;
+  chrono::high_resolution_clock::time_point total;
   try {
+    auto t0 = chrono::high_resolution_clock::now();
     while (*src) {
       switch (*src) {
         case ' ':
@@ -231,6 +233,8 @@ int main() {
       }
       src = pos;
     }
+    auto t1 = chrono::high_resolution_clock::now();
+    timing_msg << "time to tokenize: " << chrono::duration_cast<chrono::microseconds>(t1-t0).count() << endl;
   }
   catch (const char* msg) {
     cerr << "error: " << msg << endl;
@@ -240,6 +244,8 @@ int main() {
   for (auto &lexeme : lexemes) {
     cout << lexeme.to_string() << endl;
   }
+
+  cerr << endl << timing_msg.str();
 
   return 0;
 
