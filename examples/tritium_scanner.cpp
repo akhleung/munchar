@@ -2,6 +2,7 @@
 #include <string>
 #include <sstream>
 #include <iostream>
+#include <utility>
 
 #include "../include/munchar.hpp"
 #include "../include/munchar_lexemes.hpp"
@@ -17,30 +18,38 @@ constexpr auto namespace_kwd = "@namespace"_lit ^ !id_body;
 constexpr auto open_kwd      = "@open"_lit ^ !id_body;
 
 constexpr auto read_kwd      = "read"_lit ^ !(id_body | colon);
-constexpr auto position_kwd  = ("top"_lit | "bottom"_lit | "before"_lit | "after"_lit) ^ !(id_body | colon);
+constexpr auto position_kwd  =
+("top"_lit | "bottom"_lit | "before"_lit | "after"_lit) ^ !(id_body | colon);
 
 constexpr auto ts_identifier = +'$'_lit | (id_start ^ *(id_body | '$'_lit));
+constexpr auto attr_name     = (id_start | colon) ^ *(id_body | "-:."_cls);
+constexpr auto type_name     = P(::isupper) ^ *id_body;
 constexpr auto gvar          = '$'_lit ^ +id_body;
 constexpr auto lvar          = '%'_lit ^ +id_body;
+constexpr auto ts_path       = +(id_body | "-+.*?:\\/"_cls);
+constexpr auto slash_regexp  = slash ^ (escape_seq | (!"/\\"_cls ^ _)) ^ slash ^ *"imxouesn"_cls;
+constexpr auto bq_regexp     = backquote ^ (escape_seq | (!"`\\"_cls ^ _)) ^ backquote ^ *"imxouesn"_cls;
 
-using Positions = vector<size_t>;
+enum class Tritium_Token {
+  lparen, rparen, lbrace, rbrace,
+  comma, dot, equal, plus,
+  string, regexp, pos,
+  gvar, lvar,
+  kwd, id, type, path,
+  ns, open, func, import, optional,
+  read,
+  comment
+};
 
-Positions lparens;
-Positions rparens;
-Positions lbraces;
-Positions rbraces;
-Positions commas;
-Positions dots;
-Positions gvars;
-Positions lvars;
-Positions identifiers;
-Positions attributes;
-Positions imports;
-Positions optionals;
-Positions funcs;
-Positions namespaces;
-Positions opens;
+struct Lexeme {
+  Tritium_Token t;
+  const char* b;
+  const char* e;
+  constexpr Lexeme(Tritium_Token tok, const char* beg, const char* end)
+  : t(tok), b(beg), e(end) { }
+};
 
+vector<Lexeme> lexemes;
 
 int main() {
 
@@ -48,7 +57,7 @@ int main() {
   for (char c = 0; (c = getchar()) != EOF; ss << c) ;
 
   auto src = ss.str().c_str();
-  auto start = src;
+  auto start = src, pos = src;
   while (*src) {
     switch (*src) {
 
@@ -56,91 +65,142 @@ int main() {
       case '\t':
       case '\n':
       case '\r': {
-        src = whitespace(src);
+        pos = whitespace(src);
       } break;
 
       case '/': {
-        if      (src = c_comment(src))    blah;
-        else if (src = cpp_comment(src))  blah;
-        else if (src = slash_regexp(src)) blah;
-        else                              error;
+        if ((pos = c_comment(src)) || (pos = cpp_comment(src))) {
+          lexemes.push_back(Lexeme(Tritium_Token::comment, src, pos));
+        }
+        else if (pos = slash_regexp(src)) {
+          lexemes.push_back(Lexeme(Tritium_Token::regexp, src, pos));
+        }
+        else {
+          throw "malformed comment or regular expression";
+        }
       } break;
 
       case '#': {
-        src = sh_comment(src);
+        pos = sh_comment(src);
+        lexemes.push_back(Lexeme(Tritium_Token::comment, src, pos));
       } break;
 
       case '@': {
-        if      (src = import_kwd(src))    blah;
-        else if (src = optional_kwd(src))  blah;
-        else if (src = func_kwd(src))      blah;
-        else if (src = namespace_kwd(src)) blah;
-        else if (src = open_kwd(src))      blah;
-        else                               error;
+        if (pos = import_kwd(src)) {
+          lexemes.push_back(Lexeme(Tritium_Token::import, src, pos));
+        }
+        else if (pos = optional_kwd(src)) {
+          lexemes.push_back(Lexeme(Tritium_Token::optional, src, pos));
+        }
+        else if (pos = func_kwd(src)) {
+          lexemes.push_back(Lexeme(Tritium_Token::func, src, pos));
+        }
+        else if (pos = namespace_kwd(src)) {
+          lexemes.push_back(Lexeme(Tritium_Token::ns, src, pos));
+        }
+        else if (pos = open_kwd(src)) {
+          lexemes.push_back(Lexeme(Tritium_Token::open, src, pos));
+        }
+        else {
+          throw "unrecognized directive";
+        }
       } break;
 
       case '+': {
-        ++src;
+        lexemes.push_back(Lexeme(Tritium_Token::plus, src, pos));
       } break;
 
       case '"':
       case '\'': {
-        if (src = Lexemes::string(src)) blah;
-        else                            error;
+        if (pos = Lexemes::string(src)) {
+          lexemes.push_back(Lexeme(Tritium_Token::string, src, pos));
+        }
+        else {
+          throw "unterminated string";
+        }
       } break;
 
       case '`': {
-        if (src = backquote_regexp(src)) blah;
-        else                             error;
+        if (pos = bq_regexp(src)) {
+          lexemes.push_back(Lexeme(Tritium_Token::regexp, src, pos));
+        }
+        else {
+          throw "malformed regular expression";
+        }
       } break;
 
       case '(': {
-        ++src;
+        lexemes.push_back(Lexeme(Tritium_Token::lparen, src, pos));
       } break;
 
       case ')': {
-        ++src;
+        lexemes.push_back(Lexeme(Tritium_Token::rparen, src, pos));
       } break;
 
       case '{': {
-        ++src;
+        lexemes.push_back(Lexeme(Tritium_Token::lbrace, src, pos));
       } break;
 
       case '}': {
-        ++src;
+        lexemes.push_back(Lexeme(Tritium_Token::rbrace, src, pos));
       } break;
 
       case '.': {
-        ++src;
+        lexemes.push_back(Lexeme(Tritium_Token::dot, src, pos));
       } break;
 
       case ',': {
-        ++src;
+        lexemes.push_back(Lexeme(Tritium_Token::comma, src, pos));
       } break;
 
       case '=': {
-        ++src;
+        lexemes.push_back(Lexeme(Tritium_Token::equal, src, pos));
       } break;
 
       case '$': {
-        if (src = gvar(src)) blah;
-        else                 src = ts_identifier(src);
+        if (pos = gvar(src)) {
+          lexemes.push_back(Lexeme(Tritium_Token::gvar, src, pos));
+        }
+        else {
+          pos = ts_identifier(src);
+          lexemes.push_back(Lexeme(Tritium_Token::id, src, pos));
+        }
       } break;
 
       case '%': {
-        if (src = lvar(src)) blah;
-        else                 error;
+        if (pos = lvar(src)) {
+          lexemes.push_back(Lexeme(Tritium_Token::lvar, src, pos));
+        }
+        else {
+          throw "malformed local variable name";
+        }
       } break;
 
       default: {
-        if      (src = position_kwd(src))  check_for_attr;
-        else if (src = read_kwd(src))      check_for_attr;
-        else if (src = ts_identifier(src)) check_for_attr;
-        else if (src = attr_name(src))     blah;
-        else if (src = number(src))        blah;
-        else                               error;
+        if (pos = position_kwd(src)) {
+          lexemes.push_back(Lexeme(Tritium_Token::pos, src, pos));
+        }
+        else if (pos = type_name(src)) {
+          lexemes.push_back(Lexeme(Tritium_Token::type, src, pos));
+        }
+        else if (pos = read_kwd(src)) {
+          lexemes.push_back(Lexeme(Tritium_Token::read, src, pos));
+        }
+        else if (pos = attr_name(src)) {
+          if (*(pos-1) != ':') throw "attribute name must be followed by `:`";
+          lexemes.push_back(Lexeme(Tritium_Token::kwd, src, pos));
+        }
+        else if (pos = ts_identifier(src)) {
+          lexemes.push_back(Lexeme(Tritium_Token::id, src, pos));
+        }
+        else if (pos = number(src)) {
+          lexemes.push_back(Lexeme(Tritium_Token::string, src, pos));
+        }
+        else {
+          throw "unrecognized lexeme";
+        }
       } break;
-
+      src = pos;
     }
 
 
