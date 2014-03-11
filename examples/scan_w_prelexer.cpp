@@ -225,6 +225,7 @@ vector<Lexeme> lexemes;
 
 int main() {
 
+  lexemes.reserve(150000);
   stringstream ss, timing_msg;
   for (char c = 0; (c = getchar()) != EOF; ss << c) ;
 
