@@ -9,7 +9,7 @@
 #include "../include/munchar_tokens.hpp"
 
 using namespace Munchar;
-using namespace Munchar::Lexemes;
+using namespace Munchar::Tokens;
 
 size_t TEST_NUM = 0;
 size_t COUNT = 0;

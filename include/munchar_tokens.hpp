@@ -5,7 +5,7 @@
 #include <cctype>
 
 namespace Munchar {
-  namespace Lexemes {
+  namespace Tokens {
 
     constexpr auto null          = '\0'_lit;
     constexpr auto tab           = '\t'_lit;
