@@ -6,7 +6,7 @@
 #include <sstream>
 
 #include "../include/munchar.hpp"
-#include "../include/munchar_lexemes.hpp"
+#include "../include/munchar_tokens.hpp"
 
 using namespace Munchar;
 using namespace Munchar::Lexemes;
