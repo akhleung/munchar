@@ -4,30 +4,184 @@
 #include <iostream>
 #include <chrono>
 
-#include "../include/munchar.hpp"
-#include "../include/munchar_lexemes.hpp"
+#include "prelexer/constants.hpp"
+#include "prelexer/prelexer.hpp"
 
 using namespace std;
-using namespace Munchar;
-using namespace Munchar::Lexemes;
+using namespace Sass;
+using namespace Sass::Constants;
+using namespace Sass::Prelexer;
 
-constexpr auto import_kwd    = "@import"_lit ^ !id_body;
-constexpr auto optional_kwd  = "@optional"_lit ^ !id_body;
-constexpr auto func_kwd      = "@func"_lit ^ !id_body;
-constexpr auto namespace_kwd = "@namespace"_lit ^ !id_body;
-constexpr auto open_kwd      = "@open"_lit ^ !id_body;
+namespace Sass {
+  namespace Prelexer {
+    inline const char* id_start(const char* src) {
+      return alternatives<alpha, exactly<'_'> >(src);
+    }
 
-constexpr auto read_kwd      = "read"_lit ^ !(id_body | colon);
-constexpr auto position_kwd  = ("top"_lit | "bottom"_lit | "before"_lit | "after"_lit) ^ !(id_body | colon);
+    inline const char* id_body(const char* src) {
+      return alternatives<alnum, exactly<'_'> >(src);
+    }
 
-constexpr auto ts_identifier = +'$'_lit | (id_start ^ *(id_body | '$'_lit));
-constexpr auto attr_name     = (id_start | colon) ^ *(id_body | "-."_cls) ^ colon;
-constexpr auto type_name     = P(::isupper) ^ *id_body;
-constexpr auto gvar          = '$'_lit ^ +id_body;
-constexpr auto lvar          = '%'_lit ^ +id_body;
-constexpr auto ts_path       = +(id_body | "-+.*?:\\/"_cls);
-constexpr auto slash_regexp  = slash ^ *(escape_seq | (!"/\\"_cls ^ _)) ^ slash ^ *"imxouesn"_cls;
-constexpr auto bq_regexp     = backquote ^ *(escape_seq | (!"`\\"_cls ^ _)) ^ backquote ^ *"imxouesn"_cls;
+    inline const char* colon(const char* src) {
+      return exactly<':'>(src);
+    }
+
+    constexpr char import_k[] = "@import";
+    inline const char* import_kwd(const char* src) {
+      return
+      sequence<
+        exactly<import_k>,
+        negate<id_body>
+      >(src);
+    }
+
+    constexpr char optional_k[] = "@optional";
+    inline const char* optional_kwd(const char* src) {
+      return sequence<exactly<optional_k>, negate<id_body> >(src);
+    }
+
+    constexpr char func_k[] = "@func";
+    inline const char* func_kwd(const char* src) {
+      return sequence<exactly<func_k>, negate<id_body> >(src);
+    }
+
+    constexpr char namespace_k[] = "@namespace";
+    inline const char* namespace_kwd(const char* src) {
+      return sequence<exactly<namespace_k>, negate<id_body> >(src);
+    }
+
+    constexpr char open_k[] = "@open";
+    inline const char* open_kwd(const char* src) {
+      return sequence<exactly<open_k>, negate<id_body> >(src);
+    }
+
+    constexpr char read_k[] = "read";
+    inline const char* read_kwd(const char* src) {
+      return sequence<exactly<read_k>, negate<alternatives<id_body, colon > > >(src);
+    }
+
+    constexpr char top_k[] = "top";
+    constexpr char bottom_k[] = "bottom";
+    constexpr char before_k[] = "before";
+    constexpr char after_k[] = "after";
+    inline const char* position_kwd(const char* src) {
+      return
+      sequence<
+        alternatives<exactly<top_k>, exactly<bottom_k>, exactly<before_k>, exactly<after_k> >,
+        negate<alternatives<id_body, colon > >
+      >(src);
+    }
+
+    inline const char* ts_identifier(const char* src) {
+      return
+      alternatives<
+        one_plus<exactly<'$'> >,
+        sequence<id_start, zero_plus<alternatives<id_body, exactly<'$'> > > >
+      >(src);
+    }
+
+    constexpr char hyphen_dot[] = "-.";
+    inline const char* attr_name(const char* src) {
+      return
+      sequence<
+        alternatives<id_start, colon>,
+        zero_plus<alternatives<id_body, class_char<hyphen_dot> > >,
+        colon
+      >(src);
+    }
+
+    inline const char* upper(const char* src) {
+      return ::isupper(*src) ? src+1 : 0;
+    }
+
+    inline const char* type_name(const char* src) {
+      return sequence<upper, zero_plus<id_body> >(src);
+    }
+
+    inline const char* gvar(const char* src) {
+      return sequence<exactly<'$'>, one_plus<id_body> >(src);
+    }
+
+    inline const char* lvar(const char* src) {
+      return sequence<exactly<'%'>, one_plus<id_body> >(src);
+    }
+
+    constexpr char path_chars[] = "-+.*?:\\/";
+    constexpr char rgx_mod[] = "imxouesn";
+    constexpr char slash_chars[] = "/\\";
+    constexpr char bq_and_slash[] = "`\\";
+
+    inline const char* ts_path(const char* src) {
+      return one_plus<alternatives<id_body, class_char<path_chars> > >(src);
+    }
+
+    inline const char* escape_seq(const char* src) {
+      return sequence<exactly<'\\'>, any_char>(src);
+    }
+
+    inline const char* slash_regexp(const char* src) {
+      return
+      sequence<
+        exactly<'/'>,
+        zero_plus<
+          alternatives<
+            escape_seq,
+            sequence<
+              negate<class_char<slash_chars> >,
+              any_char
+            >
+          >
+        >,
+        exactly<'/'>,
+        zero_plus<class_char<rgx_mod> >
+      >(src);
+    }
+
+    inline const char* bq_regexp(const char* src) {
+      return
+      sequence<
+        exactly<'`'>,
+        zero_plus<
+          alternatives<
+            escape_seq,
+            sequence<
+              negate<class_char<bq_and_slash> >,
+              any_char
+            >
+          >
+        >,
+        exactly<'`'>,
+        zero_plus<class_char<rgx_mod> >
+      >(src);
+    }
+
+    inline const char* whitespace(const char* src) {
+      return optional<spaces>(src);
+    }
+
+    inline const char* c_comment(const char* src) {
+      return line_comment(src);
+    }
+
+    inline const char* cpp_comment(const char* src) {
+      return block_comment(src);
+    }
+
+    constexpr char crlf_chars[] = "\r\n";
+    inline const char* eol(const char* src) {
+      return alternatives<exactly<'\n'>, exactly<crlf_chars> >(src);
+    }
+
+    inline const char* sh_comment(const char* src) {
+      return
+      sequence<
+        exactly<'#'>,
+        zero_plus<sequence<negate<eol>, any_char> >,
+        optional<eol>
+      >(src);
+    }
+  }
+}
 
 enum Tritium_Token {
   LPAREN, RPAREN, LBRACE, RBRACE,
@@ -74,8 +228,8 @@ int main() {
   stringstream ss, timing_msg;
   for (char c = 0; (c = getchar()) != EOF; ss << c) ;
 
-  auto src_str = ss.str();
-  auto src = src_str.c_str();
+  std::string src_str = ss.str();
+  const char* src = src_str.c_str();
   const char* pos = src;
   chrono::high_resolution_clock::time_point total;
   try {
@@ -111,10 +265,10 @@ int main() {
         } break;
 
         case '@': {
-          if ((pos = import_kwd(src))) {
+          if ((pos = Prelexer::import_kwd(src))) {
             lexemes.push_back(Lexeme(IMPORT, src, pos));
           }
-          else if ((pos = optional_kwd(src))) {
+          else if ((pos = Prelexer::optional_kwd(src))) {
             lexemes.push_back(Lexeme(OPTIONAL, src, pos));
           }
           else if ((pos = func_kwd(src))) {
@@ -138,7 +292,7 @@ int main() {
 
         case '"':
         case '\'': {
-          if ((pos = Lexemes::string(src))) {
+          if ((pos = string_constant(src))) {
             lexemes.push_back(Lexeme(STRING, src, pos));
           }
           else {
@@ -237,7 +391,7 @@ int main() {
       src = pos;
     }
     auto t1 = chrono::high_resolution_clock::now();
-    timing_msg << "time to tokenize: " << chrono::duration_cast<chrono::microseconds>(t1-t0).count() << "usec" << endl;
+    timing_msg << "time to tokenize: " << chrono::duration_cast<chrono::microseconds>(t1-t0).count() << " usec" << endl;
   }
   catch (const char* msg) {
     cerr << "error: " << msg << endl;
