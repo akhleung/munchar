@@ -1,5 +1,5 @@
-#ifndef MUNCHAR_LEXEMES
-#define MUNCHAR_LEXEMES
+#ifndef MUNCHAR_TOKENS
+#define MUNCHAR_TOKENS
 
 #include "munchar.hpp"
 #include <cctype>
