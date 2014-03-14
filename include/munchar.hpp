@@ -299,8 +299,7 @@ namespace Munchar {
   // Option
 
   template<typename M>
-  constexpr auto operator~(const M& m)
-  -> decltype(m | Success { }) {
+  constexpr Alternation<M, Success> operator~(const M& m) {
     return m | Success { };
   }
 
