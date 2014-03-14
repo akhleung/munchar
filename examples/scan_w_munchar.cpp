@@ -5,11 +5,11 @@
 #include <chrono>
 
 #include "../include/munchar.hpp"
-#include "../include/munchar_lexemes.hpp"
+#include "../include/munchar_tokens.hpp"
 
 using namespace std;
 using namespace Munchar;
-using namespace Munchar::Lexemes;
+using namespace Munchar::Tokens;
 
 constexpr auto import_kwd    = "@import"_lit ^ !id_body;
 constexpr auto optional_kwd  = "@optional"_lit ^ !id_body;
@@ -138,7 +138,7 @@ int main() {
 
         case '"':
         case '\'': {
-          if ((pos = Lexemes::string(src))) {
+          if ((pos = Tokens::string(src))) {
             lexemes.push_back(Lexeme(STRING, src, pos));
           }
           else {
