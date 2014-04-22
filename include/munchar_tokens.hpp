@@ -77,13 +77,13 @@ namespace Munchar {
     constexpr auto number_ne     = ~sign ^ ((*digit ^ dot ^ +digit) | +digit);
     constexpr auto number        = number_ne ^ ~("eE"_cls ^ ~sign ^ +digit);
     constexpr auto escape_seq    = backslash ^ _;
-    constexpr auto d_string      = double_quote ^
+    constexpr auto dq_string     = double_quote ^
                                    *(escape_seq | (!"\"\\"_cls ^ _)) ^
                                    double_quote;
-    constexpr auto s_string      = single_quote ^
+    constexpr auto sq_string     = single_quote ^
                                    *(escape_seq | (!"'\\"_cls ^ _)) ^
                                    single_quote;
-    constexpr auto string        = d_string | s_string;
+    constexpr auto string        = dq_string | sq_string;
     constexpr auto eol           = newline | crlf;
     constexpr auto c_comment     = "//"_lit ^ *(!eol ^ _) ^ ~eol;
     constexpr auto cpp_comment   = "/*"_lit ^ *(!"*/"_lit ^ _) ^ "*/"_lit;
