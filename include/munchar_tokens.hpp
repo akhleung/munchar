@@ -7,60 +7,60 @@
 namespace Munchar {
   namespace Tokens {
 
-    constexpr auto null          = '\0'_lit;
-    constexpr auto tab           = '\t'_lit;
-    constexpr auto newline       = '\n'_lit;
+    constexpr auto null          = CHR('\0');
+    constexpr auto tab           = CHR('\t');
+    constexpr auto newline       = CHR('\n');
     constexpr auto linefeed      = newline;
-    constexpr auto cr            = '\r'_lit;
-    constexpr auto crlf          = "\r\n"_lit;
+    constexpr auto cr            = CHR('\r');
+    constexpr auto crlf          = STR("\r\n");
 
-    constexpr auto space         = ' '_lit;
-    constexpr auto exclamation   = '!'_lit;
-    constexpr auto double_quote  = '"'_lit;
+    constexpr auto space         = CHR(' ');
+    constexpr auto exclamation   = CHR('!');
+    constexpr auto double_quote  = CHR('"');
     constexpr auto quote         = double_quote;
-    constexpr auto pound         = '#'_lit;
+    constexpr auto pound         = CHR('#');
     constexpr auto hash          = pound;
     constexpr auto octothorpe    = pound;
-    constexpr auto dollar        = '$'_lit;
-    constexpr auto percent       = '%'_lit;
-    constexpr auto ampersand     = '&'_lit;
-    constexpr auto apostrophe    = '\''_lit;
+    constexpr auto dollar        = CHR('$');
+    constexpr auto percent       = CHR('%');
+    constexpr auto ampersand     = CHR('&');
+    constexpr auto apostrophe    = CHR('\'');
     constexpr auto single_quote  = apostrophe;
-    constexpr auto left_paren    = '('_lit;
-    constexpr auto right_paren   = ')'_lit;
-    constexpr auto asterisk      = '*'_lit;
-    constexpr auto plus          = '+'_lit;
-    constexpr auto comma         = ','_lit;
-    constexpr auto hyphen        = '-'_lit;
+    constexpr auto left_paren    = CHR('(');
+    constexpr auto right_paren   = CHR(')');
+    constexpr auto asterisk      = CHR('*');
+    constexpr auto plus          = CHR('+');
+    constexpr auto comma         = CHR(',');
+    constexpr auto hyphen        = CHR('-');
     constexpr auto minus         = hyphen;
-    constexpr auto period        = '.'_lit;
+    constexpr auto period        = CHR('.');
     constexpr auto dot           = period;
-    constexpr auto slash         = '/'_lit;
+    constexpr auto slash         = CHR('/');
     constexpr auto divide        = slash;
-    constexpr auto colon         = ':'_lit;
-    constexpr auto semicolon     = ';'_lit;
-    constexpr auto less_than     = '<'_lit;
+    constexpr auto colon         = CHR(':');
+    constexpr auto semicolon     = CHR(';');
+    constexpr auto less_than     = CHR('<');
     constexpr auto lt            = less_than;
-    constexpr auto lte           = "<="_lit;
-    constexpr auto equals        = '='_lit;
+    constexpr auto lte           = STR("<=");
+    constexpr auto equals        = CHR('=');
     constexpr auto eq            = equals;
-    constexpr auto greater_than  = '>'_lit;
+    constexpr auto greater_than  = CHR('>');
     constexpr auto gt            = greater_than;
-    constexpr auto gte           = ">="_lit;
-    constexpr auto question      = '?'_lit;
-    constexpr auto at            = '@'_lit;
-    constexpr auto left_bracket  = '['_lit;
-    constexpr auto backslash     = '\\'_lit;
-    constexpr auto right_bracket = ']'_lit;
-    constexpr auto caret         = '^'_lit;
+    constexpr auto gte           = STR(">=");
+    constexpr auto question      = CHR('?');
+    constexpr auto at            = CHR('@');
+    constexpr auto left_bracket  = CHR('[');
+    constexpr auto backslash     = CHR('\\');
+    constexpr auto right_bracket = CHR(']');
+    constexpr auto caret         = CHR('^');
     constexpr auto circumflex    = caret;
-    constexpr auto underscore    = '_'_lit;
-    constexpr auto backquote     = '`'_lit;
-    constexpr auto left_brace    = '{'_lit;
-    constexpr auto vertical_bar  = '|'_lit;
+    constexpr auto underscore    = CHR('_');
+    constexpr auto backquote     = CHR('`');
+    constexpr auto left_brace    = CHR('{');
+    constexpr auto vertical_bar  = CHR('|');
     constexpr auto pipe          = vertical_bar;
-    constexpr auto right_brace   = '}'_lit;
-    constexpr auto tilde         = '~'_lit;
+    constexpr auto right_brace   = CHR('}');
+    constexpr auto tilde         = CHR('~');
 
     constexpr auto _             = Any_Char { };
     constexpr auto letter        = MUNCHAR_STATIC_PREDICATE(::isalpha);
@@ -69,25 +69,25 @@ namespace Munchar {
     constexpr auto hex_digit     = MUNCHAR_STATIC_PREDICATE(::isxdigit);
     constexpr auto ws_char       = MUNCHAR_STATIC_PREDICATE(::isspace);
     constexpr auto whitespace    = *ws_char;
-    constexpr auto sign          = "+-"_cls;
+    constexpr auto sign          = CLS("+-");
     constexpr auto id_start      = letter | underscore;
     constexpr auto id_body       = alphanumeric | underscore;
     constexpr auto identifier    = id_start^*id_body;
     constexpr auto integer       = ~sign ^ +digit;
     constexpr auto number_ne     = ~sign ^ ((*digit ^ dot ^ +digit) | +digit);
-    constexpr auto number        = number_ne ^ ~("eE"_cls ^ ~sign ^ +digit);
+    constexpr auto number        = number_ne ^ ~(CLS("eE") ^ ~sign ^ +digit);
     constexpr auto escape_seq    = backslash ^ _;
     constexpr auto dq_string     = double_quote ^
-                                   *(escape_seq | (!"\"\\"_cls ^ _)) ^
+                                   *(escape_seq | (!CLS("\"\\") ^ _)) ^
                                    double_quote;
     constexpr auto sq_string     = single_quote ^
-                                   *(escape_seq | (!"'\\"_cls ^ _)) ^
+                                   *(escape_seq | (!CLS("'\\") ^ _)) ^
                                    single_quote;
     constexpr auto string        = dq_string | sq_string;
     constexpr auto eol           = newline | crlf;
-    constexpr auto c_comment     = "//"_lit ^ *(!eol ^ _) ^ ~eol;
-    constexpr auto cpp_comment   = "/*"_lit ^ *(!"*/"_lit ^ _) ^ "*/"_lit;
-    constexpr auto sh_comment    = '#'_lit ^ *(!eol ^ _) ^ ~eol;
+    constexpr auto c_comment     = STR("//") ^ *(!eol ^ _) ^ ~eol;
+    constexpr auto cpp_comment   = STR("/*") ^ *(!STR("*/") ^ _) ^ STR("*/");
+    constexpr auto sh_comment    = CHR('#') ^ *(!eol ^ _) ^ ~eol;
 
   }
 }

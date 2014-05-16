@@ -63,20 +63,20 @@ void fail(const T& t, const char* input) {
 
 int main() {
 
-  pass('a'_lit, "abc", "a");
-  fail('a'_lit, "bcd");
-  fail('a'_lit, "");
+  pass(CHR('a'), "abc", "a");
+  fail(CHR('a'), "bcd");
+  fail(CHR('a'), "");
 
-  pass("abc"_lit, "abcdefg", "abc");
-  fail("abc"_lit, "bcdefgh");
-  fail("abc"_lit, "ab");
-  fail("abc"_lit, "");
+  pass(STR("abc"), "abcdefg", "abc");
+  fail(STR("abc"), "bcdefgh");
+  fail(STR("abc"), "ab");
+  fail(STR("abc"), "");
 
-  pass("abc"_cls, "abcdefg", "a");
-  pass("abc"_cls, "bcdefgh", "b");
-  pass("abc"_cls, "cdefghi", "c");
-  fail("abc"_cls, "defghij");
-  fail("abc"_cls, "");
+  pass(CLS("abc"), "abcdefg", "a");
+  pass(CLS("abc"), "bcdefgh", "b");
+  pass(CLS("abc"), "cdefghi", "c");
+  fail(CLS("abc"), "defghij");
+  fail(CLS("abc"), "");
 
   pass(MUNCHAR_STATIC_PREDICATE(::isdigit), "12345", "1");
   pass(P(::isdigit), "12345", "1");
@@ -85,44 +85,44 @@ int main() {
   fail(MUNCHAR_STATIC_PREDICATE(::isdigit), "");
   fail(P(::isdigit), "");
 
-  pass("foo"_lit ^ "bar"_lit, "foobarhux", "foobar");
+  pass(STR("foo") ^ STR("bar"), "foobarhux", "foobar");
   pass(P(::isalpha) ^ P(::isdigit), "a1 blah", "a1");
-  pass("foo"_lit ^ "bar"_lit ^ "hux"_lit, "foobarhuxbaz", "foobarhux");
-  fail("foo"_lit ^ "bar"_lit, "foobah");
-  fail("foo"_lit ^ "bar"_lit, "foob");
-  fail("foo"_lit ^ "bar"_lit, "boof");
-  fail("foo"_lit ^ "bar"_lit, "");
-  fail("foo"_lit ^ "bar"_lit ^ "hux"_lit, "foobar");
-  fail("foo"_lit ^ "bar"_lit ^ "hux"_lit, "");
+  pass(STR("foo") ^ STR("bar") ^ STR("hux"), "foobarhuxbaz", "foobarhux");
+  fail(STR("foo") ^ STR("bar"), "foobah");
+  fail(STR("foo") ^ STR("bar"), "foob");
+  fail(STR("foo") ^ STR("bar"), "boof");
+  fail(STR("foo") ^ STR("bar"), "");
+  fail(STR("foo") ^ STR("bar") ^ STR("hux"), "foobar");
+  fail(STR("foo") ^ STR("bar") ^ STR("hux"), "");
   fail(P(::isalpha) ^ P(::isdigit), "a");
   fail(P(::isalpha) ^ P(::isdigit), "1a");
   fail(P(::isalpha) ^ P(::isdigit), "");
 
-  pass("foo"_lit | "bar"_lit, "foobarhux", "foo");
-  pass("foo"_lit | "bar"_lit, "barfoohux", "bar");
-  pass("foo"_lit | "bar"_lit | "hux"_lit, "huxleberry", "hux");
+  pass(STR("foo") | STR("bar"), "foobarhux", "foo");
+  pass(STR("foo") | STR("bar"), "barfoohux", "bar");
+  pass(STR("foo") | STR("bar") | STR("hux"), "huxleberry", "hux");
   pass(P(::isalpha) | P(::isdigit), "a1 blah", "a");
   pass(P(::isalpha) | P(::isdigit), "1a blah", "1");
-  fail("foo"_lit | "bar"_lit, "bahfoo");
-  fail("foo"_lit | "bar"_lit, "boofoo");
-  fail("foo"_lit | "bar"_lit, "boof");
-  fail("foo"_lit | "bar"_lit, "");
-  fail("foo"_lit | "bar"_lit | "hux"_lit, "huckleberry");
+  fail(STR("foo") | STR("bar"), "bahfoo");
+  fail(STR("foo") | STR("bar"), "boofoo");
+  fail(STR("foo") | STR("bar"), "boof");
+  fail(STR("foo") | STR("bar"), "");
+  fail(STR("foo") | STR("bar") | STR("hux"), "huckleberry");
   fail(P(::isalpha) | P(::isdigit), ".");
   fail(P(::isalpha) | P(::isdigit), "!");
   fail(P(::isalpha) | P(::isdigit), "");
 
-  pass(~("foo"_lit | "bar"_lit), "barhux", "bar");
-  pass(~("foo"_lit | "bar"_lit), "bludge", "");
-  pass(~("foo"_lit | "bar"_lit), "", "");
+  pass(~(STR("foo") | STR("bar")), "barhux", "bar");
+  pass(~(STR("foo") | STR("bar")), "bludge", "");
+  pass(~(STR("foo") | STR("bar")), "", "");
 
-  pass(*("foo"_lit | "bar"_lit), "foobarfoofoobarstop", "foobarfoofoobar");
-  pass(*("foo"_lit | "bar"_lit), "f", "");
-  pass(*("foo"_lit | "bar"_lit), "", "");
+  pass(*(STR("foo") | STR("bar")), "foobarfoofoobarstop", "foobarfoofoobar");
+  pass(*(STR("foo") | STR("bar")), "f", "");
+  pass(*(STR("foo") | STR("bar")), "", "");
 
-  pass(+("foo"_lit | "bar"_lit), "foobarfoofoobarstop", "foobarfoofoobar");
-  fail(+("foo"_lit | "bar"_lit), "f");
-  fail(+("foo"_lit | "bar"_lit), "");
+  pass(+(STR("foo") | STR("bar")), "foobarfoofoobarstop", "foobarfoofoobar");
+  fail(+(STR("foo") | STR("bar")), "f");
+  fail(+(STR("foo") | STR("bar")), "");
 
   pass(P(::isalpha) == 3, "abcde", "abc");
   pass(P(::isalpha) == 3, "abc12", "abc");
@@ -156,15 +156,15 @@ int main() {
   fail(P(::isalpha) >= 3, "ab");
   fail(P(::isalpha) >= 3, "");
 
-  pass(between(3, 5, 'a'_lit), "aaaab", "aaaa");
-  pass(between(5, 3, 'a'_lit), "aaaab", "aaaa");
-  pass(between(3, 5, 'a'_lit), "aaaaaaab", "aaaaa");
-  pass(between(5, 3, 'a'_lit), "aaaaaaab", "aaaaa");
-  pass(between(3, 5, 'a'_lit), "aaab", "aaa");
-  pass(between(3, 3, 'a'_lit), "aaaa", "aaa");
-  fail(between(3, 5, 'a'_lit), "aab");
-  fail(between(3, 3, 'a'_lit), "aa");
-  fail(between(3, 5, 'a'_lit), "");
+  pass(between(3, 5, CHR('a')), "aaaab", "aaaa");
+  pass(between(5, 3, CHR('a')), "aaaab", "aaaa");
+  pass(between(3, 5, CHR('a')), "aaaaaaab", "aaaaa");
+  pass(between(5, 3, CHR('a')), "aaaaaaab", "aaaaa");
+  pass(between(3, 5, CHR('a')), "aaab", "aaa");
+  pass(between(3, 3, CHR('a')), "aaaa", "aaa");
+  fail(between(3, 5, CHR('a')), "aab");
+  fail(between(3, 3, CHR('a')), "aa");
+  fail(between(3, 5, CHR('a')), "");
 
   pass(!(P(::isdigit)), "abc123", "");
   pass(!(P(::isdigit)), "", "");
@@ -175,10 +175,10 @@ int main() {
   fail(&+(P(::isdigit)), "");
 
   // negative lookahead
-  pass(!'a'_lit ^ *P(::isalpha), "bcd123", "bcd");
-  pass(!'a'_lit ^ *P(::isalpha), "", "");
-  fail(!'a'_lit ^ *P(::isalpha), "abcd123");
-  fail(!'a'_lit ^ +P(::isalpha), "");
+  pass(!CHR('a') ^ *P(::isalpha), "bcd123", "bcd");
+  pass(!CHR('a') ^ *P(::isalpha), "", "");
+  fail(!CHR('a') ^ *P(::isalpha), "abcd123");
+  fail(!CHR('a') ^ +P(::isalpha), "");
 
   pass(*_, "abc123_! \\'", "abc123_! \\'");
   pass(*_, "", "");

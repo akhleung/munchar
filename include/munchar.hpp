@@ -52,9 +52,10 @@ namespace Munchar {
     }
   };
 
-  constexpr Char operator"" _lit(const char c) {
-    return Char { c };
-  }
+  // Commenting this out because GCC 4.6 doesn't support it.
+  // constexpr Char operator"" _lit(const char c) {
+  //   return Char { c };
+  // }
 
   constexpr Char CHR(const char c) {
     return Char { c };
@@ -90,19 +91,22 @@ namespace Munchar {
   public:
     constexpr Str(const Ptr& s) : s_(s) { }
     const char* operator()(const char* b, const char* e) const {
-      Ptr s = s_;
-      for (Ptr s = s_; *s; ++s) if (!(b < e) || (*s != *b)) return nullptr;
+      for (Ptr s = s_; *s; ++b, ++s) if (!(b < e) || (*s != *b)) return nullptr;
       return b;
     }
     const char* operator()(const char* b) const {
-      Ptr s = s_;
-      for (Ptr s = s_; *s; ++s) if (!*b || (*s != *b)) return nullptr;
+      for (Ptr s = s_; *s; ++b, ++s) if (!*b || (*s != *b)) return nullptr;
       return b;
     }
   };
 
-  constexpr Str<> operator"" _lit(const char* c, size_t len) {
-    return Str<> { c, len };
+  // Commenting this out because GCC 4.6 doesn't support it.
+  // constexpr Str<> operator"" _lit(const char* c, size_t len) {
+  //   return Str<> { c, len };
+  // }
+
+  constexpr Str<const char*, false> STR(const char* s) {
+    return Str<const char*, false> { s };
   }
 
   template<typename Ptr>
@@ -154,8 +158,13 @@ namespace Munchar {
     }
   };
 
-  constexpr Char_Class<> operator"" _cls(const char* c, size_t len) {
-    return Char_Class<> { c, len };
+  // Commenting this out because GCC 4.6 doesn't support it.
+  // constexpr Char_Class<> operator"" _cls(const char* c, size_t len) {
+  //   return Char_Class<> { c, len };
+  // }
+
+  constexpr Char_Class<const char*, false> CLS(const char* s) {
+    return Char_Class<const char*, false> { s };
   }
 
   template<typename Ptr>
@@ -256,12 +265,18 @@ namespace Munchar {
     constexpr Binary(const L& l, const R& r) : l_(l), r_(r) { }
   };
 
+  // Would prefer to use constructor inheritance for everything derived from
+  // the preceding two base classes, but GCC 4.6 doesn't support it. Hence the
+  // constructors are all defined explicitly.
+
   // Sequencing
 
   template<typename L, typename R>
-  class Sequence : public Binary<L, R> {
+  class Sequence {
+    const L l_;
+    const R r_;
   public:
-    using Binary<L, R>::Binary;
+    constexpr Sequence(const L& l, const R& r) : l_(l), r_(r) { }
     const char* operator()(const char* b, const char* e) const {
       return (b = this->l_(b, e)) ? this->r_(b, e) : nullptr;
     }
@@ -278,9 +293,11 @@ namespace Munchar {
   // Alternation
 
   template<typename L, typename R>
-  class Alternation : public Binary<L, R> {
+  class Alternation {
+    const L l_;
+    const R r_;
   public:
-    using Binary<L, R>::Binary;
+    constexpr Alternation(const L& l, const R& r) : l_(l), r_(r) { }
     const char* operator()(const char* b, const char* e) const {
       const char* p = this->l_(b);
       return p ? p : this->r_(b, e);
@@ -306,9 +323,10 @@ namespace Munchar {
   // Repetition
 
   template<typename M>
-  class Zero_Or_More : public Unary<M> {
+  class Zero_Or_More {
+    const M m_;
   public:
-    using Unary<M>::Unary;
+    constexpr Zero_Or_More(const M& m) : m_(m) { }
     const char* operator()(const char* b, const char* e) const {
       for (const char* p = b; (p = this->m_(b, e)); b = p) ;
       return b;
@@ -333,10 +351,11 @@ namespace Munchar {
   // Bounded repetition
 
   template<typename M>
-  class Exactly_N_Times : public Unary<M> {
+  class Exactly_N_Times {
+    const M m_;
     size_t n_;
   public:
-    constexpr Exactly_N_Times(const M& m, size_t n) : Unary<M> { m }, n_(n) { }
+    constexpr Exactly_N_Times(const M& m, size_t n) : m_(m), n_(n) { }
     const char* operator()(const char* b, const char* e) const {
       size_t i;
       for (i = 0; i < n_ && (b = this->m_(b, e)); ++i) ;
@@ -387,9 +406,10 @@ namespace Munchar {
   // Negation
 
   template<typename M>
-  class Negation : Unary<M> {
+  class Negation {
+    const M m_;
   public:
-    using Unary<M>::Unary;
+    constexpr Negation(const M& m) : m_(m) { }
     const char* operator()(const char* b, const char* e) const {
       return this->m_(b, e) ? nullptr : b;
     }
@@ -406,9 +426,10 @@ namespace Munchar {
   // Lookahead
 
   template<typename M>
-  class Lookahead : Unary<M> {
+  class Lookahead {
+    const M m_;
   public:
-    using Unary<M>::Unary;
+    constexpr Lookahead(const M& m) : m_(m) { }
     const char* operator()(const char* b, const char* e) const {
       return this->m_(b, e) ? b : nullptr;
     }
