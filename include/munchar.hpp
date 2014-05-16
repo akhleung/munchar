@@ -216,8 +216,7 @@ namespace Munchar {
   }
 
   template<typename I, typename O>
-  constexpr auto infer_predicate_signature(O (p)(I))
-  -> decltype(Predicate<I, O, true> { }) {
+  constexpr Predicate<I, O, true> infer_predicate_signature(O (p)(I)) {
     return Predicate<I, O, true> { };
   }
 
