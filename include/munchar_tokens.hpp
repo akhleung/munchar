@@ -85,8 +85,8 @@ namespace Munchar {
                                    single_quote;
     constexpr auto string        = dq_string | sq_string;
     constexpr auto eol           = newline | crlf;
-    constexpr auto c_comment     = STR("//") ^ *(!eol ^ _) ^ ~eol;
-    constexpr auto cpp_comment   = STR("/*") ^ *(!STR("*/") ^ _) ^ STR("*/");
+    constexpr auto cpp_comment   = STR("//") ^ *(!eol ^ _) ^ ~eol;
+    constexpr auto c_comment     = STR("/*") ^ *(!STR("*/") ^ _) ^ STR("*/");
     constexpr auto sh_comment    = CHR('#') ^ *(!eol ^ _) ^ ~eol;
 
   }

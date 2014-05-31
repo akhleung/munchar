@@ -223,25 +223,26 @@ namespace Munchar {
   #define MUNCHAR_STATIC_PREDICATE(p)\
   (infer_predicate_signature(p).instantiate<p>())
 
-  // // Wrapper for functions that implement the Munchar interface
+ // Wrapper for plain C functions that implement the Munchar interface
 
-  // template<typename F>
+  // template <const char* (*f)(const char*)>
   // class Function {
-  //   F f_;
   // public:
-  //   constexpr Function(const F& f) : f_(f) { }
-  //   const char* operator()(const char* b, const char* e) const {
-  //     return f_(b, e);
-  //   }
   //   const char* operator()(const char* b) const {
-  //     return f_(b);
+  //     return f(b);
   //   }
   // };
 
-  // template<typename Fn>
-  // constexpr Function<Fn> F(Fn f) {
-  //   return Function<Fn> { f };
-  // }
+  template <const char* (*f)(const char*, const char*)>
+  class Function {
+  public:
+    const char* operator()(const char* b, const char* e = nullptr) const {
+      return f(b, e);
+    }
+  };
+
+  #define MUNCHAR_STATIC_FUNCTION(f)\
+  (Function<f> { })
 
   // Base class for unary combinators
 
